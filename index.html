@@ -438,13 +438,24 @@
 
     <script>
         // ==========================================
-        // CONFIGURATION: ADD YOUR GITHUB FILE NAMES HERE
+        // CONFIGURATION: EXACT NAMES FROM THE IMAGE
         // ==========================================
         const HOSTED_FILES = [
-            "file1.xlsx",
-            "file2.xlsx",
-            "file3.xlsx"
-            // Ensure these names exactly match the files uploaded to your GitHub repository
+            "اعدادي.xlsx",
+            "اولي - الهندسة الكهربية.xlsx",
+            "اولي - الهندسة المعمارية.xlsx",
+            "اولي- الهندسة المدنية.xlsx", 
+            "ثالثة - الهندسة المدنية.xlsx",
+            "ثالثة - الهندسة المعمارية.xlsx",
+            "ثالثة - هندسة الألكترونيات والإتصالات الكهربية.xlsx",
+            "ثالثة - هندسة الحاسبات والتحكم.xlsx",
+            "ثانية - الهندسة الكهربية.xlsx",
+            "ثانية - الهندسة المدنية.xlsx",
+            "ثانية - الهندسة المعمارية.xlsx",
+            "رابعة - الهندسة المدنية.xlsx",
+            "رابعة - الهندسة المعمارية.xlsx",
+            "رابعة - هندسة الألكترونيات والإتصالات الكهربية.xlsx",
+            "رابعة - هندسة الحاسبات والتحكم.xlsx"
         ];
         // ==========================================
 
@@ -470,12 +481,14 @@
             const statusBox = document.getElementById('loadStatus');
             database = {}; 
             let successCount = 0;
+            let missingFiles = [];
 
             for (const fileName of HOSTED_FILES) {
                 try {
                     // Fetch the file locally relative to the HTML file on GitHub Pages
                     const response = await fetch(`./${fileName}`);
                     if (!response.ok) {
+                        missingFiles.push(fileName);
                         console.warn(`Could not load ${fileName} - HTTP Status: ${response.status}`);
                         continue; 
                     }
@@ -523,6 +536,7 @@
                     
                     successCount++;
                 } catch (error) {
+                    missingFiles.push(fileName);
                     console.error(`Error processing ${fileName}:`, error);
                 }
             }
@@ -531,8 +545,12 @@
                 statusBox.style.display = 'none';
                 document.getElementById('filterSection').classList.remove('hidden');
                 populateFileDropdown();
+                
+                if(missingFiles.length > 0) {
+                    console.log("Files not found or failed to load:", missingFiles);
+                }
             } else {
-                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على الملفات. يرجى التأكد من رفعها وتسميتها بشكل صحيح في الكود.";
+                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس مسار (Repository) الخاص بصفحة HTML.";
                 statusBox.style.borderColor = "#ef4444";
                 statusBox.style.color = "#ef4444";
             }
