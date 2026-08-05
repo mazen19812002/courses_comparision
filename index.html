@@ -438,20 +438,30 @@
 
     <script>
         // ==========================================
-        // EXACT FILE NAMES (Preserving all hidden/non-breaking spaces)
+        // REORDERED FILE NAMES 
+        // (Chronological: إعدادي, أولى, ثانية, ثالثة, رابعة)
         // ==========================================
         const HOSTED_FILES = [
+            // إعدادي
             "اعدادي.xlsx",
+            
+            // أولى
+            "اولي- الهندسة المدنية.xlsx",
             "اولي - الهندسة الكهربية.xlsx",
             "اولي - الهندسة المعمارية.xlsx",
-            "اولي- الهندسة المدنية.xlsx",
+            
+            // ثانية
+            "ثانية - الهندسة المدنية.xlsx",
+            "ثانية - الهندسة الكهربية.xlsx",
+            "ثانية - الهندسة المعمارية.xlsx",
+            
+            // ثالثة
             "ثالثة - الهندسة المدنية.xlsx",
             "ثالثة - الهندسة المعمارية.xlsx",
             "ثالثة - هندسة  الألكترونيات والإتصالات الكهربية.xlsx",
             "ثالثة - هندسة الحاسبات والتحكم.xlsx",
-            "ثانية - الهندسة الكهربية.xlsx",
-            "ثانية - الهندسة المدنية.xlsx",
-            "ثانية - الهندسة المعمارية.xlsx",
+            
+            // رابعة
             "رابعة -  الهندسة المدنية.xlsx",
             "رابعة - الهندسة المعمارية.xlsx",
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية.xlsx",
@@ -560,6 +570,7 @@
             const dropdown = document.getElementById('fileDropdown');
             dropdown.innerHTML = '<option value="">-- اختر الملف لعرض البيانات --</option>';
 
+            // Object.keys(database) maintains the fetch order (chronological as requested)
             Object.keys(database).forEach(fileName => {
                 let displayName = fileName.replace(/\.[^/.]+$/, "");
                 dropdown.innerHTML += `<option value="${fileName}">${displayName}</option>`;
