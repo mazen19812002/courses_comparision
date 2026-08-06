@@ -145,7 +145,7 @@
             flex-direction: column;
             gap: 8px;
             flex: 1;
-            min-width: 250px;
+            min-width: 200px;
         }
 
         label {
@@ -368,8 +368,8 @@
                 <label for="semesterDropdown">1. تصفية حسب الترم:</label>
                 <select id="semesterDropdown" onchange="populateFileDropdown()">
                     <option value="ALL">-- جميع الأترام --</option>
-                    <option value="_ترم اول">ترم اول</option>
-                    <option value="_ترم ثاني">ترم ثاني</option>
+                    <option value="_ترم اول">ترم اول (Term 1)</option>
+                    <option value="_ترم ثاني">ترم ثاني (Term 2)</option>
                 </select>
             </div>
 
@@ -395,6 +395,7 @@
                 <div class="toggle-container">
                     <span class="toggle-label">أرقام عشرية</span>
                     <label class="switch">
+                        <!-- Default to checked (Percentages) -->
                         <input type="checkbox" id="formatToggle" checked onchange="refreshVisuals()">
                         <span class="slider"></span>
                     </label>
@@ -451,7 +452,8 @@
 
     <script>
         // ==========================================
-        // EXACT FILE NAMES IN CHRONOLOGICAL ORDER
+        // EXACT FILE NAMES IN CHRONOLOGICAL ORDER (اعدادي - اولي - ثانية - ثالثة - رابعة)
+        // With exact hidden spaces preserved from user input.
         // ==========================================
         const HOSTED_FILES = [
             // === إعدادي ===
@@ -459,18 +461,18 @@
             "الاعدادية_ترم ثاني.xlsx",
             
             // === أولى ===
-            "اولي- الهندسة المدنية_ترم اول.xlsx",
-            "اولي- الهندسة المدنية_ترم ثاني.xlsx",
             "اولي - الهندسة الكهربية_ترم اول.xlsx",
             "اولي - الهندسة الكهربية_ترم ثاني.xlsx",
             "اولي - الهندسة المعمارية_ترم اول.xlsx",
             "اولي - الهندسة المعمارية_ترم ثاني.xlsx",
+            "اولي- الهندسة المدنية_ترم اول.xlsx",
+            "اولي- الهندسة المدنية_ترم ثاني.xlsx",
             
             // === ثانية ===
-            "ثانية - الهندسة المدنية_ترم اول.xlsx",
-            "ثانية - الهندسة المدنية_ترم ثاني.xlsx",
             "ثانية - الهندسة الكهربية_ترم اول.xlsx",
             "ثانية - الهندسة الكهربية_ترم ثاني.xlsx",
+            "ثانية - الهندسة المدنية_ترم اول.xlsx",
+            "ثانية - الهندسة المدنية_ترم ثاني.xlsx",
             "ثانية - الهندسة المعمارية_ترم اول.xlsx",
             "ثانية - الهندسة المعمارية_ترم ثاني.xlsx",
             
@@ -487,9 +489,9 @@
             // === رابعة ===
             "رابعة -  الهندسة المدنية_ترم اول.xlsx",
             "رابعة -  الهندسة المدنية_ترم ثاني.xlsx",
+            "رابعة - الهندسة المعمارية (1)_ترم ثاني.xlsx",
             "رابعة - الهندسة المعمارية_ترم اول.xlsx",
             "رابعة - الهندسة المعمارية_ترم ثاني.xlsx",
-            "رابعة - الهندسة المعمارية (1)_ترم ثاني.xlsx",
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم اول.xlsx",
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
             "رابعة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
@@ -526,6 +528,7 @@
 
             for (const fileName of HOSTED_FILES) {
                 try {
+                    // Fetch the file locally relative to the HTML file on GitHub Pages
                     const response = await fetch(`./${fileName}`);
                     if (!response.ok) {
                         missingFiles.push(fileName);
@@ -567,6 +570,7 @@
                                         database[fileName][subjStr] = {};
                                     }
                                     
+                                    // Store as raw fractional decimal internally (e.g. 0.8012)
                                     let decimalVal = numericRate > 1 ? numericRate / 100 : numericRate;
                                     database[fileName][subjStr][year] = decimalVal;
                                 }
@@ -590,7 +594,7 @@
                     console.log("Files not found or failed to load:", missingFiles);
                 }
             } else {
-                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس المسار.";
+                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس مسار (Repository) الخاص بصفحة HTML.";
                 statusBox.style.borderColor = "#ef4444";
                 statusBox.style.color = "#ef4444";
             }
@@ -606,12 +610,16 @@
 
             let matchFound = false;
 
-            Object.keys(database).forEach(fileName => {
-                // Check if file matches the semester filter
-                if (semesterFilter === 'ALL' || fileName.includes(semesterFilter)) {
-                    let displayName = fileName.replace(/\.[^/.]+$/, "");
-                    dropdown.innerHTML += `<option value="${fileName}">${displayName}</option>`;
-                    if(fileName === currentSelection) matchFound = true;
+            // Iterate strictly through the ordered HOSTED_FILES array
+            HOSTED_FILES.forEach(fileName => {
+                // Ensure the file was actually loaded successfully into the database
+                if (database[fileName]) {
+                    // Check if file matches the semester filter
+                    if (semesterFilter === 'ALL' || fileName.includes(semesterFilter)) {
+                        let displayName = fileName.replace(/\.[^/.]+$/, "");
+                        dropdown.innerHTML += `<option value="${fileName}">${displayName}</option>`;
+                        if(fileName === currentSelection) matchFound = true;
+                    }
                 }
             });
 
