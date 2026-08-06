@@ -145,7 +145,7 @@
             flex-direction: column;
             gap: 8px;
             flex: 1;
-            min-width: 200px;
+            min-width: 250px;
         }
 
         label {
@@ -453,7 +453,7 @@
     <script>
         // ==========================================
         // EXACT FILE NAMES IN CHRONOLOGICAL ORDER (اعدادي - اولي - ثانية - ثالثة - رابعة)
-        // With exact hidden spaces preserved from user input.
+        // With exact hidden spaces preserved.
         // ==========================================
         const HOSTED_FILES = [
             // === إعدادي ===
@@ -489,9 +489,9 @@
             // === رابعة ===
             "رابعة -  الهندسة المدنية_ترم اول.xlsx",
             "رابعة -  الهندسة المدنية_ترم ثاني.xlsx",
-            "رابعة - الهندسة المعمارية (1)_ترم ثاني.xlsx",
             "رابعة - الهندسة المعمارية_ترم اول.xlsx",
             "رابعة - الهندسة المعمارية_ترم ثاني.xlsx",
+            "رابعة - الهندسة المعمارية (1)_ترم ثاني.xlsx",
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم اول.xlsx",
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
             "رابعة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
@@ -528,7 +528,6 @@
 
             for (const fileName of HOSTED_FILES) {
                 try {
-                    // Fetch the file locally relative to the HTML file on GitHub Pages
                     const response = await fetch(`./${fileName}`);
                     if (!response.ok) {
                         missingFiles.push(fileName);
@@ -570,7 +569,7 @@
                                         database[fileName][subjStr] = {};
                                     }
                                     
-                                    // Store as raw fractional decimal internally (e.g. 0.8012)
+                                    // Store as raw fractional decimal internally
                                     let decimalVal = numericRate > 1 ? numericRate / 100 : numericRate;
                                     database[fileName][subjStr][year] = decimalVal;
                                 }
@@ -610,7 +609,7 @@
 
             let matchFound = false;
 
-            // Iterate strictly through the ordered HOSTED_FILES array
+            // Iterate strictly through the ordered HOSTED_FILES array to maintain chronology
             HOSTED_FILES.forEach(fileName => {
                 // Ensure the file was actually loaded successfully into the database
                 if (database[fileName]) {
