@@ -186,6 +186,7 @@
             border: 1px solid #cbd5e1;
             height: 47px;
             white-space: nowrap;
+            margin-bottom: 2px;
         }
 
         .toggle-label {
@@ -362,9 +363,19 @@
         </div>
 
         <div class="control-grid hidden" id="filterSection">
+            <!-- Semester Selection -->
+            <div class="filter-group">
+                <label for="semesterDropdown">1. تصفية حسب الترم:</label>
+                <select id="semesterDropdown" onchange="populateFileDropdown()">
+                    <option value="ALL">-- جميع الأترام --</option>
+                    <option value="_ترم اول">ترم اول</option>
+                    <option value="_ترم ثاني">ترم ثاني</option>
+                </select>
+            </div>
+
             <!-- File Selection -->
             <div class="filter-group">
-                <label for="fileDropdown">1. اختر الملف (الفرقة الدراسية):</label>
+                <label for="fileDropdown">2. اختر الملف (الفرقة الدراسية):</label>
                 <select id="fileDropdown" onchange="onFileSelectionChange()">
                     <option value="">-- يرجى اختيار ملف لعرض البيانات --</option>
                 </select>
@@ -372,21 +383,23 @@
 
             <!-- Single Subject Selection -->
             <div class="filter-group">
-                <label for="subjectDropdown">2. تصفية حسب المقرر:</label>
+                <label for="subjectDropdown">3. تصفية حسب المقرر:</label>
                 <select id="subjectDropdown" onchange="refreshVisuals()" disabled>
                     <option value="ALL">-- جميع المقررات --</option>
                 </select>
             </div>
             
             <!-- Toggle Switch -->
-            <div class="toggle-container">
-                <span class="toggle-label">أرقام عشرية</span>
-                <label class="switch">
-                    <!-- Default to checked (Percentages) -->
-                    <input type="checkbox" id="formatToggle" checked onchange="refreshVisuals()">
-                    <span class="slider"></span>
-                </label>
-                <span class="toggle-label">نسب مئوية (%)</span>
+            <div class="filter-group" style="flex: 0; min-width: auto;">
+                <label>&nbsp;</label>
+                <div class="toggle-container">
+                    <span class="toggle-label">أرقام عشرية</span>
+                    <label class="switch">
+                        <input type="checkbox" id="formatToggle" checked onchange="refreshVisuals()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">نسب مئوية (%)</span>
+                </div>
             </div>
         </div>
     </div>
@@ -428,7 +441,7 @@
 
     </main>
 
-    <!-- UI Visibility Floating Toggle (Pinned Bottom Right) -->
+    <!-- UI Visibility Floating Toggle -->
     <button class="floating-toggle" onclick="toggleInterfaceElements()" title="إظهار / إخفاء القوائم">👁️</button>
 
     <!-- Animated Footer -->
@@ -438,34 +451,52 @@
 
     <script>
         // ==========================================
-        // REORDERED FILE NAMES 
-        // (Chronological: إعدادي, أولى, ثانية, ثالثة, رابعة)
+        // EXACT FILE NAMES IN CHRONOLOGICAL ORDER
         // ==========================================
         const HOSTED_FILES = [
-            // إعدادي
-            "اعدادي.xlsx",
+            // === إعدادي ===
+            "الاعدادية_ترم اول.xlsx",
+            "الاعدادية_ترم ثاني.xlsx",
             
-            // أولى
-            "اولي- الهندسة المدنية.xlsx",
-            "اولي - الهندسة الكهربية.xlsx",
-            "اولي - الهندسة المعمارية.xlsx",
+            // === أولى ===
+            "اولي- الهندسة المدنية_ترم اول.xlsx",
+            "اولي- الهندسة المدنية_ترم ثاني.xlsx",
+            "اولي - الهندسة الكهربية_ترم اول.xlsx",
+            "اولي - الهندسة الكهربية_ترم ثاني.xlsx",
+            "اولي - الهندسة المعمارية_ترم اول.xlsx",
+            "اولي - الهندسة المعمارية_ترم ثاني.xlsx",
             
-            // ثانية
-            "ثانية - الهندسة المدنية.xlsx",
-            "ثانية - الهندسة الكهربية.xlsx",
-            "ثانية - الهندسة المعمارية.xlsx",
+            // === ثانية ===
+            "ثانية - الهندسة المدنية_ترم اول.xlsx",
+            "ثانية - الهندسة المدنية_ترم ثاني.xlsx",
+            "ثانية - الهندسة الكهربية_ترم اول.xlsx",
+            "ثانية - الهندسة الكهربية_ترم ثاني.xlsx",
+            "ثانية - الهندسة المعمارية_ترم اول.xlsx",
+            "ثانية - الهندسة المعمارية_ترم ثاني.xlsx",
             
-            // ثالثة
-            "ثالثة - الهندسة المدنية.xlsx",
-            "ثالثة - الهندسة المعمارية.xlsx",
-            "ثالثة - هندسة  الألكترونيات والإتصالات الكهربية.xlsx",
-            "ثالثة - هندسة الحاسبات والتحكم.xlsx",
+            // === ثالثة ===
+            "ثالثة - الهندسة المدنية_ترم اول.xlsx",
+            "ثالثة - الهندسة المدنية_ترم ثاني.xlsx",
+            "ثالثة - الهندسة المعمارية_ترم اول.xlsx",
+            "ثالثة - الهندسة المعمارية_ترم ثاني.xlsx",
+            "ثالثة - هندسة  الألكترونيات والإتصالات الكهربية_ترم اول.xlsx",
+            "ثالثة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
+            "ثالثة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
+            "ثالثة - هندسة الحاسبات والتحكم_ترم ثاني.xlsx",
             
-            // رابعة
-            "رابعة -  الهندسة المدنية.xlsx",
-            "رابعة - الهندسة المعمارية.xlsx",
-            "رابعة - هندسة  الألكترونيات والإتصالات الكهربية.xlsx",
-            "رابعة - هندسة الحاسبات والتحكم.xlsx"
+            // === رابعة ===
+            "رابعة -  الهندسة المدنية_ترم اول.xlsx",
+            "رابعة -  الهندسة المدنية_ترم ثاني.xlsx",
+            "رابعة - الهندسة المعمارية_ترم اول.xlsx",
+            "رابعة - الهندسة المعمارية_ترم ثاني.xlsx",
+            "رابعة - الهندسة المعمارية (1)_ترم ثاني.xlsx",
+            "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم اول.xlsx",
+            "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
+            "رابعة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
+            "رابعة - هندسة الحاسبات والتحكم_ترم ثاني.xlsx",
+            
+            // === أخرى ===
+            "نسب نجاح المقررات الكل_ترم ثاني.xlsx"
         ];
         // ==========================================
 
@@ -495,7 +526,6 @@
 
             for (const fileName of HOSTED_FILES) {
                 try {
-                    // Fetch the file locally relative to the HTML file on GitHub Pages
                     const response = await fetch(`./${fileName}`);
                     if (!response.ok) {
                         missingFiles.push(fileName);
@@ -554,41 +584,58 @@
             if (successCount > 0) {
                 statusBox.style.display = 'none';
                 document.getElementById('filterSection').classList.remove('hidden');
-                populateFileDropdown();
+                populateFileDropdown(); // Initial population
                 
                 if(missingFiles.length > 0) {
                     console.log("Files not found or failed to load:", missingFiles);
                 }
             } else {
-                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس مسار (Repository) الخاص بصفحة HTML وتطابق أسمائها بالكامل.";
+                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس المسار.";
                 statusBox.style.borderColor = "#ef4444";
                 statusBox.style.color = "#ef4444";
             }
         }
 
+        // Populates the File dropdown based on Semester filter
         function populateFileDropdown() {
+            const semesterFilter = document.getElementById('semesterDropdown').value;
             const dropdown = document.getElementById('fileDropdown');
-            dropdown.innerHTML = '<option value="">-- اختر الملف لعرض البيانات --</option>';
+            const currentSelection = dropdown.value;
+            
+            dropdown.innerHTML = '<option value="">-- يرجى اختيار ملف لعرض البيانات --</option>';
 
-            // Object.keys(database) maintains the fetch order (chronological as requested)
+            let matchFound = false;
+
             Object.keys(database).forEach(fileName => {
-                let displayName = fileName.replace(/\.[^/.]+$/, "");
-                dropdown.innerHTML += `<option value="${fileName}">${displayName}</option>`;
+                // Check if file matches the semester filter
+                if (semesterFilter === 'ALL' || fileName.includes(semesterFilter)) {
+                    let displayName = fileName.replace(/\.[^/.]+$/, "");
+                    dropdown.innerHTML += `<option value="${fileName}">${displayName}</option>`;
+                    if(fileName === currentSelection) matchFound = true;
+                }
             });
 
-            const subjectDropdown = document.getElementById('subjectDropdown');
-            subjectDropdown.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
-            subjectDropdown.disabled = true;
+            // Preserve selection if it's still valid under the new filter
+            if(matchFound) {
+                dropdown.value = currentSelection;
+            } else {
+                dropdown.value = "";
+                document.getElementById('subjectDropdown').innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
+                document.getElementById('subjectDropdown').disabled = true;
+                document.getElementById('dashboardMain').classList.add('hidden');
+            }
+            
+            onFileSelectionChange(false); // Update subjects dropdown without forced refresh logic overlap
         }
 
-        function onFileSelectionChange() {
+        function onFileSelectionChange(shouldRefresh = true) {
             const selectedFile = document.getElementById('fileDropdown').value;
             const subjectDropdown = document.getElementById('subjectDropdown');
 
             if (!selectedFile) {
                 subjectDropdown.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
                 subjectDropdown.disabled = true;
-                refreshVisuals();
+                if(shouldRefresh) refreshVisuals();
                 return;
             }
 
@@ -601,7 +648,7 @@
             });
             
             subjectDropdown.disabled = false;
-            refreshVisuals();
+            if(shouldRefresh) refreshVisuals();
         }
 
         function refreshVisuals() {
