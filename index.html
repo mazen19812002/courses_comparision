@@ -145,7 +145,7 @@
             flex-direction: column;
             gap: 8px;
             flex: 1;
-            min-width: 250px;
+            min-width: 220px;
         }
 
         label {
@@ -186,7 +186,6 @@
             border: 1px solid #cbd5e1;
             height: 47px;
             white-space: nowrap;
-            margin-bottom: 2px;
         }
 
         .toggle-label {
@@ -296,8 +295,8 @@
 
         tr:nth-child(even) {
             background: #f8fafc;
-        }
-        
+        }        
+
         tr:hover {
             background-color: #f0f9ff;
         }
@@ -363,25 +362,23 @@
         </div>
 
         <div class="control-grid hidden" id="filterSection">
-            <!-- Semester Selection -->
+            <!-- 1. Year/Department Selection -->
             <div class="filter-group">
-                <label for="semesterDropdown">1. تصفية حسب الترم:</label>
-                <select id="semesterDropdown" onchange="populateFileDropdown()">
-                    <option value="ALL">-- جميع الأترام --</option>
-                    <option value="_ترم اول">ترم اول (Term 1)</option>
-                    <option value="_ترم ثاني">ترم ثاني (Term 2)</option>
+                <label for="yearDropdown">1. الفرقة الدراسية (الملف):</label>
+                <select id="yearDropdown" onchange="onYearSelectionChange()">
+                    <option value="">-- يرجى اختيار الفرقة الدراسية --</option>
                 </select>
             </div>
 
-            <!-- File Selection -->
+            <!-- 2. Semester Selection -->
             <div class="filter-group">
-                <label for="fileDropdown">2. اختر الملف (الفرقة الدراسية):</label>
-                <select id="fileDropdown" onchange="onFileSelectionChange()">
-                    <option value="">-- يرجى اختيار ملف لعرض البيانات --</option>
+                <label for="semesterDropdown">2. الفصل الدراسي:</label>
+                <select id="semesterDropdown" onchange="onSemesterSelectionChange()" disabled>
+                    <option value="">-- اختر الفصل الدراسي --</option>
                 </select>
             </div>
 
-            <!-- Single Subject Selection -->
+            <!-- 3. Single Subject Selection -->
             <div class="filter-group">
                 <label for="subjectDropdown">3. تصفية حسب المقرر:</label>
                 <select id="subjectDropdown" onchange="refreshVisuals()" disabled>
@@ -390,22 +387,19 @@
             </div>
             
             <!-- Toggle Switch -->
-            <div class="filter-group" style="flex: 0; min-width: auto;">
-                <label>&nbsp;</label>
-                <div class="toggle-container">
-                    <span class="toggle-label">أرقام عشرية</span>
-                    <label class="switch">
-                        <!-- Default to checked (Percentages) -->
-                        <input type="checkbox" id="formatToggle" checked onchange="refreshVisuals()">
-                        <span class="slider"></span>
-                    </label>
-                    <span class="toggle-label">نسب مئوية (%)</span>
-                </div>
+            <div class="toggle-container">
+                <span class="toggle-label">أرقام عشرية</span>
+                <label class="switch">
+                    <!-- Default to checked (Percentages) -->
+                    <input type="checkbox" id="formatToggle" checked onchange="refreshVisuals()">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label">نسب مئوية (%)</span>
             </div>
         </div>
     </div>
 
-    <!-- Hidden until a file is selected -->
+    <!-- Hidden until a file and semester are selected -->
     <main class="main-content hidden" id="dashboardMain">
         
         <!-- Table Representation -->
@@ -442,7 +436,7 @@
 
     </main>
 
-    <!-- UI Visibility Floating Toggle -->
+    <!-- UI Visibility Floating Toggle (Pinned Bottom Right) -->
     <button class="floating-toggle" onclick="toggleInterfaceElements()" title="إظهار / إخفاء القوائم">👁️</button>
 
     <!-- Animated Footer -->
@@ -452,31 +446,17 @@
 
     <script>
         // ==========================================
-        // EXACT FILE NAMES IN CHRONOLOGICAL ORDER (اعدادي - اولي - ثانية - ثالثة - رابعة)
-        // With exact hidden spaces preserved.
+        // DYNAMIC FILE LIST (From Local Directory)
         // ==========================================
         const HOSTED_FILES = [
-            // === إعدادي ===
             "الاعدادية_ترم اول.xlsx",
             "الاعدادية_ترم ثاني.xlsx",
-            
-            // === أولى ===
             "اولي - الهندسة الكهربية_ترم اول.xlsx",
             "اولي - الهندسة الكهربية_ترم ثاني.xlsx",
             "اولي - الهندسة المعمارية_ترم اول.xlsx",
             "اولي - الهندسة المعمارية_ترم ثاني.xlsx",
             "اولي- الهندسة المدنية_ترم اول.xlsx",
             "اولي- الهندسة المدنية_ترم ثاني.xlsx",
-            
-            // === ثانية ===
-            "ثانية - الهندسة الكهربية_ترم اول.xlsx",
-            "ثانية - الهندسة الكهربية_ترم ثاني.xlsx",
-            "ثانية - الهندسة المدنية_ترم اول.xlsx",
-            "ثانية - الهندسة المدنية_ترم ثاني.xlsx",
-            "ثانية - الهندسة المعمارية_ترم اول.xlsx",
-            "ثانية - الهندسة المعمارية_ترم ثاني.xlsx",
-            
-            // === ثالثة ===
             "ثالثة - الهندسة المدنية_ترم اول.xlsx",
             "ثالثة - الهندسة المدنية_ترم ثاني.xlsx",
             "ثالثة - الهندسة المعمارية_ترم اول.xlsx",
@@ -485,24 +465,26 @@
             "ثالثة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
             "ثالثة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
             "ثالثة - هندسة الحاسبات والتحكم_ترم ثاني.xlsx",
-            
-            // === رابعة ===
+            "ثانية - الهندسة الكهربية_ترم اول.xlsx",
+            "ثانية - الهندسة الكهربية_ترم ثاني.xlsx",
+            "ثانية - الهندسة المدنية_ترم اول.xlsx",
+            "ثانية - الهندسة المدنية_ترم ثاني.xlsx",
+            "ثانية - الهندسة المعمارية_ترم اول.xlsx",
+            "ثانية - الهندسة المعمارية_ترم ثاني.xlsx",
             "رابعة -  الهندسة المدنية_ترم اول.xlsx",
             "رابعة -  الهندسة المدنية_ترم ثاني.xlsx",
+            "رابعة - الهندسة المعمارية (1)_ترم ثاني.xlsx",
             "رابعة - الهندسة المعمارية_ترم اول.xlsx",
             "رابعة - الهندسة المعمارية_ترم ثاني.xlsx",
-            "رابعة - الهندسة المعمارية (1)_ترم ثاني.xlsx",
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم اول.xlsx",
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
             "رابعة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
             "رابعة - هندسة الحاسبات والتحكم_ترم ثاني.xlsx",
-            
-            // === أخرى ===
             "نسب نجاح المقررات الكل_ترم ثاني.xlsx"
         ];
         // ==========================================
 
-        let database = {}; 
+        let database = {}; // Structure: database[yearOrDept][semester][subject][year]
         let chartInstance = null;
         let currentZoom = 1.0;
 
@@ -514,6 +496,18 @@
             '2025': '#ea652d',
             '2026': '#1e6b28' 
         };
+
+        // Utility function to extract department/year and semester from filename
+        function parseFileName(fileName) {
+            let cleanName = fileName.replace(".xlsx", "");
+            if (cleanName.includes("_ترم اول")) {
+                return { base: cleanName.replace("_ترم اول", "").trim(), sem: "ترم أول" };
+            } else if (cleanName.includes("_ترم ثاني")) {
+                return { base: cleanName.replace("_ترم ثاني", "").trim(), sem: "ترم ثاني" };
+            } else {
+                return { base: cleanName, sem: "غير محدد" };
+            }
+        }
 
         // Auto-load files on page startup
         window.onload = async function() {
@@ -539,7 +533,12 @@
                     const data = new Uint8Array(arrayBuffer);
                     const workbook = XLSX.read(data, { type: 'array' });
 
-                    database[fileName] = {};
+                    const parsed = parseFileName(fileName);
+                    const baseName = parsed.base;
+                    const semName = parsed.sem;
+
+                    if (!database[baseName]) database[baseName] = {};
+                    if (!database[baseName][semName]) database[baseName][semName] = {};
 
                     let sheetMappings = {};
                     coreYears.forEach((year, index) => {
@@ -565,13 +564,12 @@
                                 if (!isNaN(numericRate)) {
                                     const subjStr = String(subjectName).trim();
                                     
-                                    if (!database[fileName][subjStr]) {
-                                        database[fileName][subjStr] = {};
+                                    if (!database[baseName][semName][subjStr]) {
+                                        database[baseName][semName][subjStr] = {};
                                     }
                                     
-                                    // Store as raw fractional decimal internally
                                     let decimalVal = numericRate > 1 ? numericRate / 100 : numericRate;
-                                    database[fileName][subjStr][year] = decimalVal;
+                                    database[baseName][semName][subjStr][year] = decimalVal;
                                 }
                             }
                         });
@@ -587,90 +585,96 @@
             if (successCount > 0) {
                 statusBox.style.display = 'none';
                 document.getElementById('filterSection').classList.remove('hidden');
-                populateFileDropdown(); // Initial population
+                populateYearDropdown();
                 
                 if(missingFiles.length > 0) {
                     console.log("Files not found or failed to load:", missingFiles);
                 }
             } else {
-                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس مسار (Repository) الخاص بصفحة HTML.";
+                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من وجود ملفات الإكسيل في نفس مجلد ملف الـ HTML.";
                 statusBox.style.borderColor = "#ef4444";
                 statusBox.style.color = "#ef4444";
             }
         }
 
-        // Populates the File dropdown based on Semester filter
-        function populateFileDropdown() {
-            const semesterFilter = document.getElementById('semesterDropdown').value;
-            const dropdown = document.getElementById('fileDropdown');
-            const currentSelection = dropdown.value;
-            
-            dropdown.innerHTML = '<option value="">-- يرجى اختيار ملف لعرض البيانات --</option>';
+        function populateYearDropdown() {
+            const dropdown = document.getElementById('yearDropdown');
+            dropdown.innerHTML = '<option value="">-- اختر الفرقة الدراسية --</option>';
 
-            let matchFound = false;
-
-            // Iterate strictly through the ordered HOSTED_FILES array to maintain chronology
-            HOSTED_FILES.forEach(fileName => {
-                // Ensure the file was actually loaded successfully into the database
-                if (database[fileName]) {
-                    // Check if file matches the semester filter
-                    if (semesterFilter === 'ALL' || fileName.includes(semesterFilter)) {
-                        let displayName = fileName.replace(/\.[^/.]+$/, "");
-                        dropdown.innerHTML += `<option value="${fileName}">${displayName}</option>`;
-                        if(fileName === currentSelection) matchFound = true;
-                    }
-                }
+            Object.keys(database).forEach(baseName => {
+                dropdown.innerHTML += `<option value="${baseName}">${baseName}</option>`;
             });
 
-            // Preserve selection if it's still valid under the new filter
-            if(matchFound) {
-                dropdown.value = currentSelection;
-            } else {
-                dropdown.value = "";
-                document.getElementById('subjectDropdown').innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
-                document.getElementById('subjectDropdown').disabled = true;
-                document.getElementById('dashboardMain').classList.add('hidden');
-            }
-            
-            onFileSelectionChange(false); // Update subjects dropdown without forced refresh logic overlap
+            // Reset Sub-dropdowns
+            document.getElementById('semesterDropdown').innerHTML = '<option value="">-- اختر الفصل الدراسي --</option>';
+            document.getElementById('semesterDropdown').disabled = true;
+            document.getElementById('subjectDropdown').innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
+            document.getElementById('subjectDropdown').disabled = true;
         }
 
-        function onFileSelectionChange(shouldRefresh = true) {
-            const selectedFile = document.getElementById('fileDropdown').value;
-            const subjectDropdown = document.getElementById('subjectDropdown');
+        function onYearSelectionChange() {
+            const baseName = document.getElementById('yearDropdown').value;
+            const semDrop = document.getElementById('semesterDropdown');
+            const subjDrop = document.getElementById('subjectDropdown');
 
-            if (!selectedFile) {
-                subjectDropdown.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
-                subjectDropdown.disabled = true;
-                if(shouldRefresh) refreshVisuals();
+            if (!baseName) {
+                semDrop.innerHTML = '<option value="">-- اختر الفصل الدراسي --</option>';
+                semDrop.disabled = true;
+                subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
+                subjDrop.disabled = true;
+                refreshVisuals();
                 return;
             }
 
-            const fileData = database[selectedFile];
-            const subjects = Object.keys(fileData);
-
-            subjectDropdown.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
-            subjects.forEach(subj => {
-                subjectDropdown.innerHTML += `<option value="${subj}">${subj}</option>`;
+            semDrop.disabled = false;
+            semDrop.innerHTML = '<option value="">-- اختر الفصل الدراسي --</option>';
+            Object.keys(database[baseName]).forEach(sem => {
+                semDrop.innerHTML += `<option value="${sem}">${sem}</option>`;
             });
+
+            // Reset subjects
+            subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
+            subjDrop.disabled = true;
+            refreshVisuals();
+        }
+
+        function onSemesterSelectionChange() {
+            const baseName = document.getElementById('yearDropdown').value;
+            const semName = document.getElementById('semesterDropdown').value;
+            const subjDrop = document.getElementById('subjectDropdown');
+
+            if (!semName) {
+                subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
+                subjDrop.disabled = true;
+                refreshVisuals();
+                return;
+            }
+
+            subjDrop.disabled = false;
+            subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
             
-            subjectDropdown.disabled = false;
-            if(shouldRefresh) refreshVisuals();
+            const subjects = Object.keys(database[baseName][semName]);
+            subjects.forEach(subj => {
+                subjDrop.innerHTML += `<option value="${subj}">${subj}</option>`;
+            });
+
+            refreshVisuals();
         }
 
         function refreshVisuals() {
-            const selectedFile = document.getElementById('fileDropdown').value;
+            const baseName = document.getElementById('yearDropdown').value;
+            const semName = document.getElementById('semesterDropdown').value;
             const selectedSubject = document.getElementById('subjectDropdown').value;
             const mainContent = document.getElementById('dashboardMain');
 
-            if (!selectedFile) {
+            if (!baseName || !semName) {
                 mainContent.classList.add('hidden');
                 return;
             }
 
             mainContent.classList.remove('hidden');
 
-            const fileData = database[selectedFile];
+            const fileData = database[baseName][semName];
             let subjectsToRender = Object.keys(fileData);
 
             if (selectedSubject && selectedSubject !== 'ALL') {
