@@ -445,7 +445,7 @@
 
     <script>
         // ==========================================
-        // DYNAMIC FILE LIST (To be hosted on GitHub)
+        // DYNAMIC FILE LIST (Hosted on GitHub)
         // ==========================================
         const HOSTED_FILES = [
             "الاعدادية_ترم اول.xlsx",
@@ -478,7 +478,23 @@
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم اول.xlsx",
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
             "رابعة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
-            "رابعة - هندسة الحاسبات والتحكم_ترم ثاني.xlsx"
+            "رابعة - هندسة الحاسبات والتحكم_ترم ثاني.xlsx",
+            // Combined files (_مجمع)
+            "الاعدادية_مجمع.xlsx",
+            "الأولي -  الهندسة الكهربية_مجمع.xlsx",
+            "الأولي - الهندسة المدنية_مجمع.xlsx",
+            "الأولي - الهندسة المعمارية_مجمع.xlsx",
+            "الثالثة- الهندسة المدنية_مجمع.xlsx",
+            "الثالثة- الهندسة المعمارية_مجمع.xlsx",
+            "الثالثة- هندسة الألكترونيات والإتصالات الكهربية_مجمع.xlsx",
+            "الثالثة- هندسة الحاسبات والتحكم_مجمع.xlsx",
+            "الثانية-  الهندسة الكهربية_مجمع.xlsx",
+            "الثانية-  الهندسة المدنية_مجمع.xlsx",
+            "الثانية- الهندسة المعمارية_مجمع.xlsx",
+            "الرابعة-الهندسة المدنية_مجمع.xlsx",
+            "الرابعة-الهندسة المعمارية_مجمع.xlsx",
+            "الرابعة-هندسة الألكترونيات والإتصالات الكهربية_مجمع.xlsx",
+            "الرابعة-هندسة الحاسبات والتحكم_مجمع.xlsx"
         ];
         // ==========================================
 
@@ -492,16 +508,29 @@
         const yearColorMap = {
             '2024': '#1d6385',
             '2025': '#ea652d',
-            '2026': '#1e6b28' 
+            '2026': '#1e6b28'
         };
+
+        // Utility function to normalize string for accurate mapping
+        function normalizeName(str) {
+            return str
+                .replace(/\s+/g, ' ')
+                .replace(/أ|إ|آ/g, 'ا')
+                .replace(/ة/g, 'ه')
+                .replace(/ـ/g, '')
+                .trim();
+        }
 
         // Utility function to extract department/year and semester from filename
         function parseFileName(fileName) {
             let cleanName = fileName.replace(".xlsx", "").replace(".xls", "");
+            
             if (cleanName.includes("_ترم اول")) {
                 return { base: cleanName.replace("_ترم اول", "").trim(), sem: "ترم أول" };
             } else if (cleanName.includes("_ترم ثاني")) {
                 return { base: cleanName.replace("_ترم ثاني", "").trim(), sem: "ترم ثاني" };
+            } else if (cleanName.includes("_مجمع")) {
+                return { base: cleanName.replace("_مجمع", "").trim(), sem: "إجمالي" };
             } else {
                 return { base: cleanName, sem: "غير محدد" };
             }
@@ -520,8 +549,7 @@
 
             for (const fileName of HOSTED_FILES) {
                 try {
-                    // Fetching relatively for GitHub Pages compatibility
-                    const response = await fetch(`./${fileName}`);
+                    const response = await fetch(`./${encodeURIComponent(fileName)}`);
                     if (!response.ok) {
                         missingFiles.push(fileName);
                         console.warn(`Could not load ${fileName} - HTTP Status: ${response.status}`);
@@ -627,8 +655,18 @@
 
             semDrop.disabled = false;
             semDrop.innerHTML = '<option value="">-- اختر الفصل الدراسي --</option>';
-            Object.keys(database[baseName]).forEach(sem => {
-                semDrop.innerHTML += `<option value="${sem}">${sem}</option>`;
+
+            const availableSemesters = Object.keys(database[baseName]);
+
+            // Ensure "إجمالي" appears at the top if present
+            if (availableSemesters.includes("إجمالي")) {
+                semDrop.innerHTML += `<option value="إجمالي">إجمالي</option>`;
+            }
+
+            availableSemesters.forEach(sem => {
+                if (sem !== "إجمالي") {
+                    semDrop.innerHTML += `<option value="${sem}">${sem}</option>`;
+                }
             });
 
             // Reset subjects
@@ -733,7 +771,7 @@
                     borderWidth: 1,
                     barPercentage: 0.85,
                     categoryPercentage: 0.75,
-                    maxBarThickness: 75 
+                    maxBarThickness: 75
                 };
             });
 
@@ -746,19 +784,17 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    // إضافة مساحة علوية لمنع قص الأرقام عند نسبة 100%
                     layout: {
                         padding: {
-                            top: 35 
+                            top: 35
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            // الحد الأقصى أعلى من 100% لإعطاء مساحة للملصق
                             max: isPercentage ? 115 : 1.15,
                             grid: { color: '#e2e8f0' },
-                            ticks: { display: false } 
+                            ticks: { display: false }
                         },
                         x: {
                             grid: { display: false },
@@ -774,8 +810,7 @@
                             anchor: 'end',
                             align: 'top',
                             offset: 4,
-                            // فرض التمركز مباشرة فوق العمود لمنع الانحياز لليسار بسبب الـ RTL
-                            textAlign: 'center', 
+                            textAlign: 'center',
                             font: { weight: 'bold', size: 13 },
                             formatter: (value) => {
                                 if (value === 0) return '';
