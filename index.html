@@ -479,7 +479,7 @@
             "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
             "رابعة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
             "رابعة - هندسة الحاسبات والتحكم_ترم ثاني.xlsx",
-            // Combined files (_مجمع)
+            // Combined summary files (_مجمع)
             "الاعدادية_مجمع.xlsx",
             "الأولي -  الهندسة الكهربية_مجمع.xlsx",
             "الأولي - الهندسة المدنية_مجمع.xlsx",
@@ -510,16 +510,6 @@
             '2025': '#ea652d',
             '2026': '#1e6b28'
         };
-
-        // Utility function to normalize string for accurate mapping
-        function normalizeName(str) {
-            return str
-                .replace(/\s+/g, ' ')
-                .replace(/أ|إ|آ/g, 'ا')
-                .replace(/ة/g, 'ه')
-                .replace(/ـ/g, '')
-                .trim();
-        }
 
         // Utility function to extract department/year and semester from filename
         function parseFileName(fileName) {
@@ -580,11 +570,29 @@
                         const sheet = workbook.Sheets[targetSheetName];
                         const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
+                        if (jsonData.length === 0) return;
+
+                        // Dynamic Header Detection for Column Sequences
+                        const headerRow = jsonData[0] || [];
+                        let subjectColIndex = 2; // Default to Column C (index 2)
+                        let passRateColIndex = semName === "إجمالي" ? 18 : 10; // Default: S (18) for مجمع, K (10) for normal
+
+                        headerRow.forEach((cell, colIdx) => {
+                            if (!cell) return;
+                            const cellTxt = String(cell).trim();
+                            if (cellTxt.includes("اسم المقرر") || cellTxt === "المقرر") {
+                                subjectColIndex = colIdx;
+                            }
+                            if (cellTxt.includes("نسبة النجاح") || cellTxt.includes("نسبه النجاح")) {
+                                passRateColIndex = colIdx; // Picks Column S (18) dynamically
+                            }
+                        });
+
                         jsonData.forEach((row, idx) => {
                             if (idx === 0) return; // Skip Header Row
                             
-                            const subjectName = row[2]; // Column C
-                            const passRate = row[10];   // Column K
+                            const subjectName = row[subjectColIndex];
+                            const passRate = row[passRateColIndex];
 
                             if (subjectName && passRate !== undefined && passRate !== null) {
                                 let numericRate = parseFloat(String(passRate).replace('%', '').trim());
@@ -658,7 +666,7 @@
 
             const availableSemesters = Object.keys(database[baseName]);
 
-            // Ensure "إجمالي" appears at the top if present
+            // Always display "إجمالي" first when available
             if (availableSemesters.includes("إجمالي")) {
                 semDrop.innerHTML += `<option value="إجمالي">إجمالي</option>`;
             }
