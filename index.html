@@ -796,7 +796,7 @@
 
                 if (isPercentage) {
                     if (useAttendantsBase) {
-                        // Calculate base denominator from Attendants (ض جـ - ض - ل - جـ - جـ جـ - م)
+                        // MODE 1: Attendants Mode (Denominator = Sum of Attendants ONLY)
                         let attSum = 0;
                         ATTENDANT_KEYS.forEach(k => {
                             if (yearData[k] !== undefined) attSum += yearData[k];
@@ -810,16 +810,18 @@
                                 return { numeric: 0, text: '0%' };
                             }
                         } else {
-                            // Non-attendants (غب - غ - ح - رت) set to 0% in Attendant mode so sum equals 100%
+                            // Non-attendants (غب - غ - ح - رت) set to 0% so total sum equals 100% exactly
                             return { numeric: 0, text: '0%' };
                         }
                     } else {
-                        // Calculate base denominator from Total Registered students
-                        let regSum = yearData['TOTAL_STUDENTS'] || 0;
+                        // MODE 2: Registered Mode (Denominator = Sum of ALL 10 Grades or TOTAL_STUDENTS)
+                        let regSum = 0;
+                        GRADE_KEYS.forEach(k => {
+                            if (yearData[k] !== undefined) regSum += yearData[k];
+                        });
+
                         if (regSum <= 0) {
-                            GRADE_KEYS.forEach(k => {
-                                if (yearData[k] !== undefined) regSum += yearData[k];
-                            });
+                            regSum = yearData['TOTAL_STUDENTS'] || 0;
                         }
 
                         if (regSum > 0) {
