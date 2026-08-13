@@ -374,8 +374,8 @@
             <div class="filter-group">
                 <label for="metricDropdown">2. معيار المقارنة:</label>
                 <select id="metricDropdown" onchange="onMetricSelectionChange()" disabled>
-                    <option value="PASS_RATE">نسبة النجاح (%) - العمود S</option>
-                    <option value="ALL_GRADES">📊 توزيع جميع التقديرات لكل مقرر (مثل الرسم البياني المرفق)</option>
+                    <option value="PASS_RATE">نسبة النجاح (%) - (العمود S)</option>
+                    <option value="ALL_GRADES">📊 جميع التقديرات (توزيع كامل لكل مقرر)</option>
                     <optgroup label="مقارنة تقدير محدد عبر السنوات (2024 - 2026)">
                         <option value="ض جـ">ضعيف جداً (ض جـ)</option>
                         <option value="ض">ضعيف (ض)</option>
@@ -393,7 +393,7 @@
 
             <!-- 2.1 Year Selection for ALL_GRADES Mode -->
             <div class="filter-group hidden" id="allGradesYearGroup">
-                <label for="allGradesYearSelect">السنة الدراسية للتوزيع:</label>
+                <label for="allGradesYearSelect">السنة الدراسية:</label>
                 <select id="allGradesYearSelect" onchange="refreshVisuals()">
                     <option value="2026">2026</option>
                     <option value="2025">2025</option>
@@ -520,7 +520,6 @@
 
         const GRADE_KEYS = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م", "غب", "غ", "ح", "رت"];
 
-        // Color Map for All Grades Chart (Matching Image Visual Style)
         const gradeColorMap = {
             'ض جـ': '#1d4ed8', // Dark Blue
             'ض': '#dc2626',   // Red
@@ -534,7 +533,7 @@
             'رت': '#2563eb'   // Blue
         };
 
-        let database = {}; // Structure: database[baseDeptName][subjStr][year][metricKey]
+        let database = {}; 
         let chartInstance = null;
         let currentZoom = 1.0;
 
@@ -610,7 +609,7 @@
                     const headerRow = jsonData[0] || [];
                     let subjectColIndex = 2; // Default C
                     
-                    // STRICT REQUIREMENT: Column S (Index 18) for Pass Rate
+                    // STRICT: Column S (Index 18) for Pass Rate
                     let passRateColIndex = 18; 
                     let gradeColMap = {};
 
@@ -622,7 +621,6 @@
                             subjectColIndex = colIdx;
                         }
                         
-                        // Strict check: if column 18 has pass rate text, bind to 18
                         if (colIdx === 18 && (cellTxt.includes("نسبة النجاح") || cellTxt.includes("نسبه النجاح"))) {
                             passRateColIndex = 18;
                         }
@@ -635,7 +633,7 @@
                     });
 
                     jsonData.forEach((row, idx) => {
-                        if (idx === 0) return; // Skip Header
+                        if (idx === 0) return; 
                         
                         const subjectName = row[subjectColIndex];
                         if (!subjectName) return;
@@ -648,7 +646,7 @@
                             database[baseName][subjStr][year] = {};
                         }
 
-                        // Strictly process Pass Rate from Column S (Index 18)
+                        // Read Pass Rate strictly from Column S
                         const passRate = row[passRateColIndex];
                         if (passRate !== undefined && passRate !== null) {
                             let numericRate = parseFloat(String(passRate).replace('%', '').trim());
@@ -658,7 +656,7 @@
                             }
                         }
 
-                        // Process Detailed Grades
+                        // Read Detailed Grades
                         GRADE_KEYS.forEach(gk => {
                             const colIdx = gradeColMap[gk];
                             if (colIdx !== undefined && row[colIdx] !== undefined && row[colIdx] !== null) {
@@ -688,11 +686,30 @@
             }
         }
 
+        // Academic sorting logic (Preparatory -> First -> Second -> Third -> Fourth)
+        function getAcademicRank(deptName) {
+            if (deptName.includes("الاعدادية") || deptName.includes("إعدادي")) return 1;
+            if (deptName.includes("الأولي") || deptName.includes("الاولى") || deptName.includes("اولي")) return 2;
+            if (deptName.includes("الثانية") || deptName.includes("ثانية")) return 3;
+            if (deptName.includes("الثالثة") || deptName.includes("ثالثة")) return 4;
+            if (deptName.includes("الرابعة") || deptName.includes("رابعة")) return 5;
+            return 6;
+        }
+
         function populateYearDropdown() {
             const dropdown = document.getElementById('yearDropdown');
             dropdown.innerHTML = '<option value="">-- اختر الفرقة الدراسية --</option>';
 
-            Object.keys(database).sort().forEach(baseName => {
+            const sortedDepts = Object.keys(database).sort((a, b) => {
+                const rankA = getAcademicRank(a);
+                const rankB = getAcademicRank(b);
+                if (rankA !== rankB) {
+                    return rankA - rankB;
+                }
+                return a.localeCompare(b, 'ar');
+            });
+
+            sortedDepts.forEach(baseName => {
                 dropdown.innerHTML += `<option value="${baseName}">${baseName}</option>`;
             });
 
@@ -785,7 +802,6 @@
             tbody.innerHTML = '';
 
             if (metric === 'ALL_GRADES') {
-                // Table layout for ALL_GRADES Mode
                 let headerRowHTML = `<tr><th>اسم المقرر</th>`;
                 GRADE_KEYS.forEach(gk => {
                     headerRowHTML += `<th>${gk}</th>`;
@@ -809,7 +825,6 @@
                     tbody.appendChild(tr);
                 });
             } else {
-                // Table layout for PASS_RATE or Single Grade Mode (2024 - 2026)
                 thead.innerHTML = `<tr>
                     <th>اسم المقرر</th>
                     <th>2024</th>
@@ -858,7 +873,6 @@
             let datasets = [];
 
             if (metric === 'ALL_GRADES') {
-                // Mode: Breakdown of ALL 10 Grades for a single selected year (like the attached image)
                 const selectedYear = document.getElementById('allGradesYearSelect').value;
 
                 datasets = GRADE_KEYS.map(gk => {
@@ -880,7 +894,6 @@
                     };
                 });
             } else {
-                // Mode: Multi-year Comparison (2024 - 2026) for Pass Rate or a single selected grade
                 datasets = coreYears.map(year => {
                     const dataValues = subjects.map(subj => {
                         const yearData = deptData[subj] ? deptData[subj][year] : null;
