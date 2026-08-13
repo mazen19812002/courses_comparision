@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تحليل ومقارنة نتائج المقررات</title>
+    <title>تحليل ومقارنة نتائج المقررات حسب التقديرات ونسبة النجاح</title>
     <!-- SheetJS for offline/hosted Excel parsing -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Chart.js & DataLabels -->
@@ -40,7 +40,7 @@
         }
 
         h1 {
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 700;
             color: #0284c7;
         }
@@ -135,9 +135,9 @@
         .control-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 15px;
             align-items: flex-end;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         .filter-group {
@@ -145,20 +145,20 @@
             flex-direction: column;
             gap: 8px;
             flex: 1;
-            min-width: 220px;
+            min-width: 200px;
         }
 
         label {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             color: #334155;
         }
 
         select {
-            padding: 12px;
+            padding: 11px;
             border-radius: 8px;
             border: 1px solid #cbd5e1;
-            font-size: 16px;
+            font-size: 15px;
             background: white;
             outline: none;
             width: 100%;
@@ -179,17 +179,17 @@
         .toggle-container {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             background: #f1f5f9;
-            padding: 10px 16px;
+            padding: 9px 14px;
             border-radius: 8px;
             border: 1px solid #cbd5e1;
-            height: 47px;
+            height: 45px;
             white-space: nowrap;
         }
 
         .toggle-label {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: #334155;
         }
@@ -197,8 +197,8 @@
         .switch {
             position: relative;
             display: inline-block;
-            width: 50px;
-            height: 26px;
+            width: 46px;
+            height: 24px;
         }
 
         .switch input {
@@ -219,8 +219,8 @@
         .slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
+            height: 16px;
+            width: 16px;
             left: 4px;
             bottom: 4px;
             background-color: white;
@@ -233,7 +233,7 @@
         }
 
         input:checked + .slider:before {
-            transform: translateX(24px);
+            transform: translateX(22px);
         }
 
         /* Dashboard Content Area */
@@ -347,7 +347,7 @@
 
     <!-- Header Navigation -->
     <header id="appHeader">
-        <h1>📊 لوحة مقارنة النتائج التفاعلية</h1>
+        <h1>📊 لوحة مقارنة النتائج والتقديرات التفاعلية</h1>
         <div class="controls-top">
             <button class="btn" onclick="toggleFullScreen()">📺 ملء الشاشة (F11)</button>
             <button class="btn" onclick="adjustZoom(0.1)">🔍 +</button>
@@ -378,22 +378,42 @@
                 </select>
             </div>
 
-            <!-- 3. Single Subject Selection -->
+            <!-- 3. Metric Comparison Selection (Grades or Pass Rate) -->
             <div class="filter-group">
-                <label for="subjectDropdown">3. تصفية حسب المقرر:</label>
+                <label for="metricDropdown">3. معيار المقارنة:</label>
+                <select id="metricDropdown" onchange="refreshVisuals()" disabled>
+                    <option value="PASS_RATE">نسبة النجاح (%)</option>
+                    <optgroup label="التقديرات التفصيلية (عدد الطلاب)">
+                        <option value="ض جـ">ضعيف جداً (ض جـ)</option>
+                        <option value="ض">ضعيف (ض)</option>
+                        <option value="ل">مقبول (ل)</option>
+                        <option value="جـ">جيد (جـ)</option>
+                        <option value="جـ جـ">جيد جداً (جـ جـ)</option>
+                        <option value="م">ممتاز (م)</option>
+                        <option value="غب">غائب بعذر (غب)</option>
+                        <option value="غ">غائب (غ)</option>
+                        <option value="ح">حرمان (ح)</option>
+                        <option value="رت">راسب تحريري (رت)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- 4. Single Subject Selection -->
+            <div class="filter-group">
+                <label for="subjectDropdown">4. تصفية حسب المقرر:</label>
                 <select id="subjectDropdown" onchange="refreshVisuals()" disabled>
                     <option value="ALL">-- جميع المقررات --</option>
                 </select>
             </div>
             
-            <!-- Toggle Switch -->
-            <div class="toggle-container">
-                <span class="toggle-label">أرقام عشرية</span>
+            <!-- Toggle Switch (Active only for Pass Rate) -->
+            <div class="toggle-container" id="formatToggleWrapper">
+                <span class="toggle-label">عشري</span>
                 <label class="switch">
                     <input type="checkbox" id="formatToggle" checked onchange="refreshVisuals()">
                     <span class="slider"></span>
                 </label>
-                <span class="toggle-label">نسب مئوية (%)</span>
+                <span class="toggle-label">نسبة (%)</span>
             </div>
         </div>
     </div>
@@ -404,7 +424,7 @@
         <!-- Table Representation -->
         <div class="card">
             <div class="card-header">
-                <div class="card-title">جدول مقارنة نتائج المقررات</div>
+                <div class="card-title" id="tableCardTitle">جدول مقارنة نتائج المقررات</div>
                 <button class="btn btn-action" onclick="copyTable()">📋 نسخ الجدول</button>
             </div>
             <div class="table-wrapper">
@@ -425,7 +445,7 @@
         <!-- Grouped Bar Chart Representation -->
         <div class="card">
             <div class="card-header">
-                <div class="card-title">المخطط البياني للمقارنة</div>
+                <div class="card-title" id="chartCardTitle">المخطط البياني للمقارنة</div>
                 <button class="btn btn-action" onclick="copyChart()">🖼️ نسخ المخطط</button>
             </div>
             <div class="chart-container">
@@ -498,7 +518,9 @@
         ];
         // ==========================================
 
-        let database = {}; // Structure: database[yearOrDept][semester][subject][year]
+        const GRADE_KEYS = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م", "غب", "غ", "ح", "رت"];
+
+        let database = {}; 
         let chartInstance = null;
         let currentZoom = 1.0;
 
@@ -511,22 +533,32 @@
             '2026': '#1e6b28'
         };
 
-        // Utility function to extract department/year and semester from filename
+        // الدالة المحسنة لاستخراج أسماء الفِرَق بدون كلمة "_مجمع" مع تنظيف المسافات والرموز
         function parseFileName(fileName) {
-            let cleanName = fileName.replace(".xlsx", "").replace(".xls", "");
+            // استخراج اسم الملف فقط لو تم إرسال مسار كامل
+            let cleanName = fileName.split(/[\\/]/).pop();
             
+            // إزالة امتداد الملف والمسافات الخفية (non-breaking spaces)
+            cleanName = cleanName.replace(/\.xlsx$/i, "").replace(/\.xls$/i, "").replace(/\u00A0/g, " ").trim();
+            
+            let sem = "إجمالي";
             if (cleanName.includes("_ترم اول")) {
-                return { base: cleanName.replace("_ترم اول", "").trim(), sem: "ترم أول" };
+                sem = "ترم أول";
+                cleanName = cleanName.replace("_ترم اول", "");
             } else if (cleanName.includes("_ترم ثاني")) {
-                return { base: cleanName.replace("_ترم ثاني", "").trim(), sem: "ترم ثاني" };
+                sem = "ترم ثاني";
+                cleanName = cleanName.replace("_ترم ثاني", "");
             } else if (cleanName.includes("_مجمع")) {
-                return { base: cleanName.replace("_مجمع", "").trim(), sem: "إجمالي" };
-            } else {
-                return { base: cleanName, sem: "غير محدد" };
+                sem = "إجمالي";
+                cleanName = cleanName.replace("_مجمع", "");
             }
+
+            // تنظيف اسم الفرقة بالكامل من المسافات الزائدة وحذف الكلمة نهائياً
+            cleanName = cleanName.replace(/_مجمع/g, "").replace(/\s+/g, " ").trim();
+
+            return { base: cleanName, sem: sem };
         }
 
-        // Auto-load files on page startup via Fetch API
         window.onload = async function() {
             await fetchHostedFiles();
         };
@@ -572,41 +604,63 @@
 
                         if (jsonData.length === 0) return;
 
-                        // Dynamic Header Detection for Column Sequences
                         const headerRow = jsonData[0] || [];
-                        let subjectColIndex = 2; // Default to Column C (index 2)
-                        let passRateColIndex = semName === "إجمالي" ? 18 : 10; // Default: S (18) for مجمع, K (10) for normal
+                        let subjectColIndex = 2; // Default C
+                        let passRateColIndex = semName === "إجمالي" ? 18 : 10; // Default S (18) for مجمع
+                        let gradeColMap = {};
 
                         headerRow.forEach((cell, colIdx) => {
                             if (!cell) return;
                             const cellTxt = String(cell).trim();
+
                             if (cellTxt.includes("اسم المقرر") || cellTxt === "المقرر") {
                                 subjectColIndex = colIdx;
                             }
                             if (cellTxt.includes("نسبة النجاح") || cellTxt.includes("نسبه النجاح")) {
-                                passRateColIndex = colIdx; // Picks Column S (18) dynamically
+                                passRateColIndex = colIdx;
                             }
+
+                            GRADE_KEYS.forEach(gk => {
+                                if (cellTxt === gk) {
+                                    gradeColMap[gk] = colIdx;
+                                }
+                            });
                         });
 
                         jsonData.forEach((row, idx) => {
-                            if (idx === 0) return; // Skip Header Row
+                            if (idx === 0) return; 
                             
                             const subjectName = row[subjectColIndex];
-                            const passRate = row[passRateColIndex];
+                            if (!subjectName) return;
+                            const subjStr = String(subjectName).trim();
 
-                            if (subjectName && passRate !== undefined && passRate !== null) {
+                            if (!database[baseName][semName][subjStr]) {
+                                database[baseName][semName][subjStr] = {};
+                            }
+                            if (!database[baseName][semName][subjStr][year]) {
+                                database[baseName][semName][subjStr][year] = {};
+                            }
+
+                            // Process Pass Rate (Col S / Index 18)
+                            const passRate = row[passRateColIndex];
+                            if (passRate !== undefined && passRate !== null) {
                                 let numericRate = parseFloat(String(passRate).replace('%', '').trim());
                                 if (!isNaN(numericRate)) {
-                                    const subjStr = String(subjectName).trim();
-                                    
-                                    if (!database[baseName][semName][subjStr]) {
-                                        database[baseName][semName][subjStr] = {};
-                                    }
-                                    
                                     let decimalVal = numericRate > 1 ? numericRate / 100 : numericRate;
-                                    database[baseName][semName][subjStr][year] = decimalVal;
+                                    database[baseName][semName][subjStr][year]['PASS_RATE'] = decimalVal;
                                 }
                             }
+
+                            // Process Detailed Grades
+                            GRADE_KEYS.forEach(gk => {
+                                const colIdx = gradeColMap[gk];
+                                if (colIdx !== undefined && row[colIdx] !== undefined && row[colIdx] !== null) {
+                                    let countVal = parseInt(row[colIdx], 10);
+                                    if (!isNaN(countVal)) {
+                                        database[baseName][semName][subjStr][year][gk] = countVal;
+                                    }
+                                }
+                            });
                         });
                     });
                     
@@ -621,10 +675,6 @@
                 statusBox.style.display = 'none';
                 document.getElementById('filterSection').classList.remove('hidden');
                 populateYearDropdown();
-                
-                if(missingFiles.length > 0) {
-                    console.log("Files not found or failed to load:", missingFiles);
-                }
             } else {
                 statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس مسار صفحة HTML على GitHub وتطابق أسمائها بالكامل.";
                 statusBox.style.borderColor = "#ef4444";
@@ -640,9 +690,13 @@
                 dropdown.innerHTML += `<option value="${baseName}">${baseName}</option>`;
             });
 
-            // Reset Sub-dropdowns
+            resetDropdowns();
+        }
+
+        function resetDropdowns() {
             document.getElementById('semesterDropdown').innerHTML = '<option value="">-- اختر الفصل الدراسي --</option>';
             document.getElementById('semesterDropdown').disabled = true;
+            document.getElementById('metricDropdown').disabled = true;
             document.getElementById('subjectDropdown').innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
             document.getElementById('subjectDropdown').disabled = true;
         }
@@ -650,13 +704,11 @@
         function onYearSelectionChange() {
             const baseName = document.getElementById('yearDropdown').value;
             const semDrop = document.getElementById('semesterDropdown');
+            const metricDrop = document.getElementById('metricDropdown');
             const subjDrop = document.getElementById('subjectDropdown');
 
             if (!baseName) {
-                semDrop.innerHTML = '<option value="">-- اختر الفصل الدراسي --</option>';
-                semDrop.disabled = true;
-                subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
-                subjDrop.disabled = true;
+                resetDropdowns();
                 refreshVisuals();
                 return;
             }
@@ -666,7 +718,6 @@
 
             const availableSemesters = Object.keys(database[baseName]);
 
-            // Always display "إجمالي" first when available
             if (availableSemesters.includes("إجمالي")) {
                 semDrop.innerHTML += `<option value="إجمالي">إجمالي</option>`;
             }
@@ -677,7 +728,7 @@
                 }
             });
 
-            // Reset subjects
+            metricDrop.disabled = true;
             subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
             subjDrop.disabled = true;
             refreshVisuals();
@@ -686,15 +737,18 @@
         function onSemesterSelectionChange() {
             const baseName = document.getElementById('yearDropdown').value;
             const semName = document.getElementById('semesterDropdown').value;
+            const metricDrop = document.getElementById('metricDropdown');
             const subjDrop = document.getElementById('subjectDropdown');
 
             if (!semName) {
+                metricDrop.disabled = true;
                 subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
                 subjDrop.disabled = true;
                 refreshVisuals();
                 return;
             }
 
+            metricDrop.disabled = false;
             subjDrop.disabled = false;
             subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
             
@@ -709,12 +763,20 @@
         function refreshVisuals() {
             const baseName = document.getElementById('yearDropdown').value;
             const semName = document.getElementById('semesterDropdown').value;
+            const selectedMetric = document.getElementById('metricDropdown').value;
             const selectedSubject = document.getElementById('subjectDropdown').value;
             const mainContent = document.getElementById('dashboardMain');
+            const formatToggleWrapper = document.getElementById('formatToggleWrapper');
 
             if (!baseName || !semName) {
                 mainContent.classList.add('hidden');
                 return;
+            }
+
+            if (selectedMetric === 'PASS_RATE') {
+                formatToggleWrapper.style.display = 'flex';
+            } else {
+                formatToggleWrapper.style.display = 'none';
             }
 
             mainContent.classList.remove('hidden');
@@ -726,11 +788,15 @@
                 subjectsToRender = [selectedSubject];
             }
 
-            renderMatrixTable(fileData, subjectsToRender);
-            renderChart(fileData, subjectsToRender);
+            const metricLabel = document.getElementById('metricDropdown').options[document.getElementById('metricDropdown').selectedIndex].text;
+            document.getElementById('tableCardTitle').innerText = `جدول مقارنة المقررات حسب (${metricLabel})`;
+            document.getElementById('chartCardTitle').innerText = `المخطط البياني للمقارنة حسب (${metricLabel})`;
+
+            renderMatrixTable(fileData, subjectsToRender, selectedMetric);
+            renderChart(fileData, subjectsToRender, selectedMetric);
         }
 
-        function renderMatrixTable(fileData, subjects) {
+        function renderMatrixTable(fileData, subjects, metric) {
             const tbody = document.getElementById('tableBody');
             const isPercentage = document.getElementById('formatToggle').checked;
             tbody.innerHTML = '';
@@ -740,14 +806,19 @@
                 let rowHTML = `<td>${subj}</td>`;
 
                 coreYears.forEach(year => {
-                    const rate = fileData[subj][year];
+                    const yearData = fileData[subj] ? fileData[subj][year] : null;
+                    const val = yearData ? yearData[metric] : undefined;
                     let displayVal = '-';
                     
-                    if (rate !== undefined) {
-                        if (isPercentage) {
-                            displayVal = (rate * 100).toFixed(2) + '%';
+                    if (val !== undefined) {
+                        if (metric === 'PASS_RATE') {
+                            if (isPercentage) {
+                                displayVal = (val * 100).toFixed(2) + '%';
+                            } else {
+                                displayVal = val.toFixed(4);
+                            }
                         } else {
-                            displayVal = rate.toFixed(4);
+                            displayVal = val;
                         }
                     }
                     rowHTML += `<td>${displayVal}</td>`;
@@ -758,7 +829,7 @@
             });
         }
 
-        function renderChart(fileData, subjects) {
+        function renderChart(fileData, subjects, metric) {
             const ctx = document.getElementById('comparisonChart').getContext('2d');
             const isPercentage = document.getElementById('formatToggle').checked;
 
@@ -766,14 +837,27 @@
                 chartInstance.destroy();
             }
 
+            let maxValFound = 0;
+
             const datasets = coreYears.map(year => {
+                const dataValues = subjects.map(subj => {
+                    const yearData = fileData[subj] ? fileData[subj][year] : null;
+                    const val = yearData ? yearData[metric] : undefined;
+                    if (val === undefined) return 0;
+
+                    if (metric === 'PASS_RATE') {
+                        let calc = isPercentage ? parseFloat((val * 100).toFixed(2)) : parseFloat(val.toFixed(4));
+                        if (calc > maxValFound) maxValFound = calc;
+                        return calc;
+                    } else {
+                        if (val > maxValFound) maxValFound = val;
+                        return val;
+                    }
+                });
+
                 return {
                     label: year,
-                    data: subjects.map(subj => {
-                        const rate = fileData[subj][year];
-                        if (rate === undefined) return 0;
-                        return isPercentage ? parseFloat((rate * 100).toFixed(2)) : parseFloat(rate.toFixed(4));
-                    }),
+                    data: dataValues,
                     backgroundColor: yearColorMap[year],
                     borderColor: yearColorMap[year],
                     borderWidth: 1,
@@ -782,6 +866,13 @@
                     maxBarThickness: 75
                 };
             });
+
+            let yMax = 100;
+            if (metric === 'PASS_RATE') {
+                yMax = isPercentage ? 115 : 1.15;
+            } else {
+                yMax = maxValFound > 0 ? Math.ceil(maxValFound * 1.2) : 10;
+            }
 
             chartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -800,7 +891,7 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            max: isPercentage ? 115 : 1.15,
+                            max: yMax,
                             grid: { color: '#e2e8f0' },
                             ticks: { display: false }
                         },
@@ -822,7 +913,11 @@
                             font: { weight: 'bold', size: 13 },
                             formatter: (value) => {
                                 if (value === 0) return '';
-                                return isPercentage ? value.toFixed(2) + '%' : value;
+                                if (metric === 'PASS_RATE') {
+                                    return isPercentage ? value.toFixed(2) + '%' : value;
+                                } else {
+                                    return value;
+                                }
                             },
                             color: '#1e293b'
                         }
