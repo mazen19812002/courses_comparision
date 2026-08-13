@@ -175,7 +175,7 @@
             color: #94a3b8;
         }
 
-        /* Custom Toggle Switch */
+        /* Custom Toggle Switch for Universal Display Mode */
         .toggle-container {
             display: flex;
             align-items: center;
@@ -374,7 +374,7 @@
             <div class="filter-group">
                 <label for="metricDropdown">2. معيار المقارنة:</label>
                 <select id="metricDropdown" onchange="onMetricSelectionChange()" disabled>
-                    <option value="PASS_RATE">نسبة النجاح (%) - (العمود S)</option>
+                    <option value="PASS_RATE">نسبة النجاح (العمود S)</option>
                     <option value="ALL_GRADES">📊 جميع التقديرات (توزيع كامل لكل مقرر)</option>
                     <optgroup label="مقارنة تقدير محدد عبر السنوات (2024 - 2026)">
                         <option value="ض جـ">ضعيف جداً (ض جـ)</option>
@@ -409,14 +409,14 @@
                 </select>
             </div>
             
-            <!-- Toggle Switch (Active only for Pass Rate) -->
+            <!-- Global Universal Switch Button for Table & Chart Display Mode -->
             <div class="toggle-container" id="formatToggleWrapper">
-                <span class="toggle-label">عشري</span>
+                <span class="toggle-label">أرقام / عشري</span>
                 <label class="switch">
                     <input type="checkbox" id="formatToggle" checked onchange="refreshVisuals()">
                     <span class="slider"></span>
                 </label>
-                <span class="toggle-label">نسبة (%)</span>
+                <span class="toggle-label">نسب مئوية (%)</span>
             </div>
         </div>
     </div>
@@ -608,6 +608,7 @@
 
                     const headerRow = jsonData[0] || [];
                     let subjectColIndex = 2; // Default C
+                    let totalStudentsColIndex = 3; // Default D (الطلاب/الحاضرين)
                     
                     // STRICT: Column S (Index 18) for Pass Rate
                     let passRateColIndex = 18; 
@@ -619,6 +620,9 @@
 
                         if (cellTxt.includes("اسم المقرر") || cellTxt === "المقرر") {
                             subjectColIndex = colIdx;
+                        }
+                        if (cellTxt.includes("الطلاب") || cellTxt.includes("الحاضرين")) {
+                            totalStudentsColIndex = colIdx;
                         }
                         
                         if (colIdx === 18 && (cellTxt.includes("نسبة النجاح") || cellTxt.includes("نسبه النجاح"))) {
@@ -645,6 +649,10 @@
                         if (!database[baseName][subjStr][year]) {
                             database[baseName][subjStr][year] = {};
                         }
+
+                        // Store Total Students Count for percentage calculations of individual grades
+                        let totalCount = parseInt(row[totalStudentsColIndex], 10);
+                        database[baseName][subjStr][year]['TOTAL_STUDENTS'] = (!isNaN(totalCount) && totalCount > 0) ? totalCount : 0;
 
                         // Read Pass Rate strictly from Column S
                         const passRate = row[passRateColIndex];
@@ -759,22 +767,48 @@
             refreshVisuals();
         }
 
+        // Calculate Formatted Value according to Metric & Universal Toggle State
+        function getFormattedValue(yearData, metric, isPercentage) {
+            if (!yearData) return { numeric: 0, text: '-' };
+
+            if (metric === 'PASS_RATE') {
+                const rate = yearData['PASS_RATE'];
+                if (rate === undefined) return { numeric: 0, text: '-' };
+                if (isPercentage) {
+                    let pct = parseFloat((rate * 100).toFixed(2));
+                    return { numeric: pct, text: pct + '%' };
+                } else {
+                    let dec = parseFloat(rate.toFixed(4));
+                    return { numeric: dec, text: dec };
+                }
+            } else {
+                // Grade metric (e.g. 'ض', 'ل', 'م' or ALL_GRADES items)
+                const count = yearData[metric];
+                if (count === undefined) return { numeric: 0, text: '-' };
+
+                if (isPercentage) {
+                    const total = yearData['TOTAL_STUDENTS'] || 0;
+                    if (total > 0) {
+                        let pct = parseFloat(((count / total) * 100).toFixed(2));
+                        return { numeric: pct, text: pct + '%' };
+                    } else {
+                        return { numeric: 0, text: '0%' };
+                    }
+                } else {
+                    return { numeric: count, text: count };
+                }
+            }
+        }
+
         function refreshVisuals() {
             const baseName = document.getElementById('yearDropdown').value;
             const selectedMetric = document.getElementById('metricDropdown').value;
             const selectedSubject = document.getElementById('subjectDropdown').value;
             const mainContent = document.getElementById('dashboardMain');
-            const formatToggleWrapper = document.getElementById('formatToggleWrapper');
 
             if (!baseName) {
                 mainContent.classList.add('hidden');
                 return;
-            }
-
-            if (selectedMetric === 'PASS_RATE') {
-                formatToggleWrapper.style.display = 'flex';
-            } else {
-                formatToggleWrapper.style.display = 'none';
             }
 
             mainContent.classList.remove('hidden');
@@ -817,8 +851,8 @@
                     const yearData = deptData[subj] ? deptData[subj][selectedYear] : null;
 
                     GRADE_KEYS.forEach(gk => {
-                        const val = yearData ? yearData[gk] : undefined;
-                        rowHTML += `<td>${val !== undefined ? val : '-'}</td>`;
+                        const valObj = getFormattedValue(yearData, gk, isPercentage);
+                        rowHTML += `<td>${valObj.text}</td>`;
                     });
 
                     tr.innerHTML = rowHTML;
@@ -838,21 +872,8 @@
 
                     coreYears.forEach(year => {
                         const yearData = deptData[subj] ? deptData[subj][year] : null;
-                        const val = yearData ? yearData[metric] : undefined;
-                        let displayVal = '-';
-                        
-                        if (val !== undefined) {
-                            if (metric === 'PASS_RATE') {
-                                if (isPercentage) {
-                                    displayVal = (val * 100).toFixed(2) + '%';
-                                } else {
-                                    displayVal = val.toFixed(4);
-                                }
-                            } else {
-                                displayVal = val;
-                            }
-                        }
-                        rowHTML += `<td>${displayVal}</td>`;
+                        const valObj = getFormattedValue(yearData, metric, isPercentage);
+                        rowHTML += `<td>${valObj.text}</td>`;
                     });
 
                     tr.innerHTML = rowHTML;
@@ -878,9 +899,9 @@
                 datasets = GRADE_KEYS.map(gk => {
                     const dataValues = subjects.map(subj => {
                         const yearData = deptData[subj] ? deptData[subj][selectedYear] : null;
-                        const val = yearData ? yearData[gk] : 0;
-                        if (val > maxValFound) maxValFound = val;
-                        return val || 0;
+                        const valObj = getFormattedValue(yearData, gk, isPercentage);
+                        if (valObj.numeric > maxValFound) maxValFound = valObj.numeric;
+                        return valObj.numeric;
                     });
 
                     return {
@@ -897,17 +918,9 @@
                 datasets = coreYears.map(year => {
                     const dataValues = subjects.map(subj => {
                         const yearData = deptData[subj] ? deptData[subj][year] : null;
-                        const val = yearData ? yearData[metric] : undefined;
-                        if (val === undefined) return 0;
-
-                        if (metric === 'PASS_RATE') {
-                            let calc = isPercentage ? parseFloat((val * 100).toFixed(2)) : parseFloat(val.toFixed(4));
-                            if (calc > maxValFound) maxValFound = calc;
-                            return calc;
-                        } else {
-                            if (val > maxValFound) maxValFound = val;
-                            return val;
-                        }
+                        const valObj = getFormattedValue(yearData, metric, isPercentage);
+                        if (valObj.numeric > maxValFound) maxValFound = valObj.numeric;
+                        return valObj.numeric;
                     });
 
                     return {
@@ -924,10 +937,14 @@
             }
 
             let yMax = 100;
-            if (metric === 'PASS_RATE') {
-                yMax = isPercentage ? 115 : 1.15;
+            if (isPercentage) {
+                yMax = maxValFound > 0 ? Math.ceil(maxValFound * 1.15) : 100;
             } else {
-                yMax = maxValFound > 0 ? Math.ceil(maxValFound * 1.2) : 10;
+                if (metric === 'PASS_RATE') {
+                    yMax = 1.15;
+                } else {
+                    yMax = maxValFound > 0 ? Math.ceil(maxValFound * 1.2) : 10;
+                }
             }
 
             chartInstance = new Chart(ctx, {
@@ -974,8 +991,8 @@
                             font: { weight: 'bold', size: 11 },
                             formatter: (value) => {
                                 if (value === 0) return '';
-                                if (metric === 'PASS_RATE') {
-                                    return isPercentage ? value.toFixed(2) + '%' : value;
+                                if (isPercentage) {
+                                    return value.toFixed(2) + '%';
                                 } else {
                                     return value;
                                 }
