@@ -175,7 +175,7 @@
             color: #94a3b8;
         }
 
-        /* Custom Toggle Switch for Universal Display Mode */
+        /* Custom Toggle Switch */
         .toggle-container {
             display: flex;
             align-items: center;
@@ -418,6 +418,16 @@
                 </label>
                 <span class="toggle-label">نسب مئوية (%)</span>
             </div>
+
+            <!-- Sub-Switch for Percentage Calculation Base (Attendants vs Registered) -->
+            <div class="toggle-container" id="denomToggleWrapper">
+                <span class="toggle-label">أساس النسبة:</span>
+                <label class="switch">
+                    <input type="checkbox" id="denomToggle" checked onchange="refreshVisuals()">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label" id="denomLabelText">الحاضرين (ض جـ إلى م) [100%]</span>
+            </div>
         </div>
     </div>
 
@@ -518,6 +528,7 @@
         ];
         // ==========================================
 
+        const ATTENDANT_KEYS = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م"];
         const GRADE_KEYS = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م", "غب", "غ", "ح", "رت"];
 
         const gradeColorMap = {
@@ -608,7 +619,7 @@
 
                     const headerRow = jsonData[0] || [];
                     let subjectColIndex = 2; // Default C
-                    let totalStudentsColIndex = 3; // Default D (الطلاب/الحاضرين)
+                    let totalStudentsColIndex = 3; // Default D
                     
                     // STRICT: Column S (Index 18) for Pass Rate
                     let passRateColIndex = 18; 
@@ -650,7 +661,6 @@
                             database[baseName][subjStr][year] = {};
                         }
 
-                        // Store Total Students Count for percentage calculations of individual grades
                         let totalCount = parseInt(row[totalStudentsColIndex], 10);
                         database[baseName][subjStr][year]['TOTAL_STUDENTS'] = (!isNaN(totalCount) && totalCount > 0) ? totalCount : 0;
 
@@ -694,7 +704,6 @@
             }
         }
 
-        // Academic sorting logic (Preparatory -> First -> Second -> Third -> Fourth)
         function getAcademicRank(deptName) {
             if (deptName.includes("الاعدادية") || deptName.includes("إعدادي")) return 1;
             if (deptName.includes("الأولي") || deptName.includes("الاولى") || deptName.includes("اولي")) return 2;
@@ -767,8 +776,8 @@
             refreshVisuals();
         }
 
-        // Calculate Formatted Value according to Metric & Universal Toggle State
-        function getFormattedValue(yearData, metric, isPercentage) {
+        // Calculate Formatted Value according to Metric, Percentage Toggle, and Base Denominator
+        function getFormattedValue(yearData, metric, isPercentage, useAttendantsBase) {
             if (!yearData) return { numeric: 0, text: '-' };
 
             if (metric === 'PASS_RATE') {
@@ -782,17 +791,43 @@
                     return { numeric: dec, text: dec };
                 }
             } else {
-                // Grade metric (e.g. 'ض', 'ل', 'م' or ALL_GRADES items)
                 const count = yearData[metric];
                 if (count === undefined) return { numeric: 0, text: '-' };
 
                 if (isPercentage) {
-                    const total = yearData['TOTAL_STUDENTS'] || 0;
-                    if (total > 0) {
-                        let pct = parseFloat(((count / total) * 100).toFixed(2));
-                        return { numeric: pct, text: pct + '%' };
+                    if (useAttendantsBase) {
+                        // Calculate base denominator from Attendants (ض جـ - ض - ل - جـ - جـ جـ - م)
+                        let attSum = 0;
+                        ATTENDANT_KEYS.forEach(k => {
+                            if (yearData[k] !== undefined) attSum += yearData[k];
+                        });
+
+                        if (ATTENDANT_KEYS.includes(metric)) {
+                            if (attSum > 0) {
+                                let pct = parseFloat(((count / attSum) * 100).toFixed(2));
+                                return { numeric: pct, text: pct + '%' };
+                            } else {
+                                return { numeric: 0, text: '0%' };
+                            }
+                        } else {
+                            // Non-attendants (غب - غ - ح - رت) set to 0% in Attendant mode so sum equals 100%
+                            return { numeric: 0, text: '0%' };
+                        }
                     } else {
-                        return { numeric: 0, text: '0%' };
+                        // Calculate base denominator from Total Registered students
+                        let regSum = yearData['TOTAL_STUDENTS'] || 0;
+                        if (regSum <= 0) {
+                            GRADE_KEYS.forEach(k => {
+                                if (yearData[k] !== undefined) regSum += yearData[k];
+                            });
+                        }
+
+                        if (regSum > 0) {
+                            let pct = parseFloat(((count / regSum) * 100).toFixed(2));
+                            return { numeric: pct, text: pct + '%' };
+                        } else {
+                            return { numeric: 0, text: '0%' };
+                        }
                     }
                 } else {
                     return { numeric: count, text: count };
@@ -806,9 +841,26 @@
             const selectedSubject = document.getElementById('subjectDropdown').value;
             const mainContent = document.getElementById('dashboardMain');
 
+            const isPercentage = document.getElementById('formatToggle').checked;
+            const denomToggleWrapper = document.getElementById('denomToggleWrapper');
+            const denomToggle = document.getElementById('denomToggle');
+            const denomLabelText = document.getElementById('denomLabelText');
+
             if (!baseName) {
                 mainContent.classList.add('hidden');
                 return;
+            }
+
+            // Show base switch only when Percentages mode is active
+            if (isPercentage) {
+                denomToggleWrapper.style.display = 'flex';
+                if (denomToggle.checked) {
+                    denomLabelText.innerText = 'الحاضرين (ض جـ إلى م) [100%]';
+                } else {
+                    denomLabelText.innerText = 'المسجلين (شامل غب، غ، ح، رت) [100%]';
+                }
+            } else {
+                denomToggleWrapper.style.display = 'none';
             }
 
             mainContent.classList.remove('hidden');
@@ -832,6 +884,7 @@
             const thead = document.getElementById('tableHead');
             const tbody = document.getElementById('tableBody');
             const isPercentage = document.getElementById('formatToggle').checked;
+            const useAttendantsBase = document.getElementById('denomToggle').checked;
             
             tbody.innerHTML = '';
 
@@ -851,7 +904,7 @@
                     const yearData = deptData[subj] ? deptData[subj][selectedYear] : null;
 
                     GRADE_KEYS.forEach(gk => {
-                        const valObj = getFormattedValue(yearData, gk, isPercentage);
+                        const valObj = getFormattedValue(yearData, gk, isPercentage, useAttendantsBase);
                         rowHTML += `<td>${valObj.text}</td>`;
                     });
 
@@ -872,7 +925,7 @@
 
                     coreYears.forEach(year => {
                         const yearData = deptData[subj] ? deptData[subj][year] : null;
-                        const valObj = getFormattedValue(yearData, metric, isPercentage);
+                        const valObj = getFormattedValue(yearData, metric, isPercentage, useAttendantsBase);
                         rowHTML += `<td>${valObj.text}</td>`;
                     });
 
@@ -885,6 +938,7 @@
         function renderChart(deptData, subjects, metric) {
             const ctx = document.getElementById('comparisonChart').getContext('2d');
             const isPercentage = document.getElementById('formatToggle').checked;
+            const useAttendantsBase = document.getElementById('denomToggle').checked;
 
             if (chartInstance) {
                 chartInstance.destroy();
@@ -899,7 +953,7 @@
                 datasets = GRADE_KEYS.map(gk => {
                     const dataValues = subjects.map(subj => {
                         const yearData = deptData[subj] ? deptData[subj][selectedYear] : null;
-                        const valObj = getFormattedValue(yearData, gk, isPercentage);
+                        const valObj = getFormattedValue(yearData, gk, isPercentage, useAttendantsBase);
                         if (valObj.numeric > maxValFound) maxValFound = valObj.numeric;
                         return valObj.numeric;
                     });
@@ -918,7 +972,7 @@
                 datasets = coreYears.map(year => {
                     const dataValues = subjects.map(subj => {
                         const yearData = deptData[subj] ? deptData[subj][year] : null;
-                        const valObj = getFormattedValue(yearData, metric, isPercentage);
+                        const valObj = getFormattedValue(yearData, metric, isPercentage, useAttendantsBase);
                         if (valObj.numeric > maxValFound) maxValFound = valObj.numeric;
                         return valObj.numeric;
                     });
