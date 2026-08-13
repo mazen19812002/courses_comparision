@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تحليل ومقارنة نتائج المقررات حسب التقديرات ونسبة النجاح</title>
+    <title>تحليل ومقارنة نتائج المقررات والتقديرات</title>
     <!-- SheetJS for offline/hosted Excel parsing -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Chart.js & DataLabels -->
@@ -145,7 +145,7 @@
             flex-direction: column;
             gap: 8px;
             flex: 1;
-            min-width: 200px;
+            min-width: 220px;
         }
 
         label {
@@ -364,23 +364,15 @@
         <div class="control-grid hidden" id="filterSection">
             <!-- 1. Year/Department Selection -->
             <div class="filter-group">
-                <label for="yearDropdown">1. الفرقة الدراسية (الملف):</label>
+                <label for="yearDropdown">1. الفرقة الدراسية:</label>
                 <select id="yearDropdown" onchange="onYearSelectionChange()">
                     <option value="">-- يرجى اختيار الفرقة الدراسية --</option>
                 </select>
             </div>
 
-            <!-- 2. Semester Selection -->
+            <!-- 2. Metric Comparison Selection (Grades or Pass Rate) -->
             <div class="filter-group">
-                <label for="semesterDropdown">2. الفصل الدراسي:</label>
-                <select id="semesterDropdown" onchange="onSemesterSelectionChange()" disabled>
-                    <option value="">-- اختر الفصل الدراسي --</option>
-                </select>
-            </div>
-
-            <!-- 3. Metric Comparison Selection (Grades or Pass Rate) -->
-            <div class="filter-group">
-                <label for="metricDropdown">3. معيار المقارنة:</label>
+                <label for="metricDropdown">2. معيار المقارنة:</label>
                 <select id="metricDropdown" onchange="refreshVisuals()" disabled>
                     <option value="PASS_RATE">نسبة النجاح (%)</option>
                     <optgroup label="التقديرات التفصيلية (عدد الطلاب)">
@@ -398,9 +390,9 @@
                 </select>
             </div>
 
-            <!-- 4. Single Subject Selection -->
+            <!-- 3. Single Subject Selection -->
             <div class="filter-group">
-                <label for="subjectDropdown">4. تصفية حسب المقرر:</label>
+                <label for="subjectDropdown">3. تصفية حسب المقرر:</label>
                 <select id="subjectDropdown" onchange="refreshVisuals()" disabled>
                     <option value="ALL">-- جميع المقررات --</option>
                 </select>
@@ -418,7 +410,7 @@
         </div>
     </div>
 
-    <!-- Hidden until a file and semester are selected -->
+    <!-- Hidden until a file is selected -->
     <main class="main-content hidden" id="dashboardMain">
         
         <!-- Table Representation -->
@@ -465,62 +457,59 @@
 
     <script>
         // ==========================================
-        // DYNAMIC FILE LIST (Hosted on GitHub)
+        // DYNAMIC SEPARATED FILES LIST FOR EACH YEAR
         // ==========================================
         const HOSTED_FILES = [
-            "الاعدادية_ترم اول.xlsx",
-            "الاعدادية_ترم ثاني.xlsx",
-            "اولي - الهندسة الكهربية_ترم اول.xlsx",
-            "اولي - الهندسة الكهربية_ترم ثاني.xlsx",
-            "اولي - الهندسة المعمارية_ترم اول.xlsx",
-            "اولي - الهندسة المعمارية_ترم ثاني.xlsx",
-            "اولي- الهندسة المدنية_ترم اول.xlsx",
-            "اولي- الهندسة المدنية_ترم ثاني.xlsx",
-            "ثالثة - الهندسة المدنية_ترم اول.xlsx",
-            "ثالثة - الهندسة المدنية_ترم ثاني.xlsx",
-            "ثالثة - الهندسة المعمارية_ترم اول.xlsx",
-            "ثالثة - الهندسة المعمارية_ترم ثاني.xlsx",
-            "ثالثة - هندسة  الألكترونيات والإتصالات الكهربية_ترم اول.xlsx",
-            "ثالثة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
-            "ثالثة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
-            "ثالثة - هندسة الحاسبات والتحكم_ترم ثاني.xlsx",
-            "ثانية - الهندسة الكهربية_ترم اول.xlsx",
-            "ثانية - الهندسة الكهربية_ترم ثاني.xlsx",
-            "ثانية - الهندسة المدنية_ترم اول.xlsx",
-            "ثانية - الهندسة المدنية_ترم ثاني.xlsx",
-            "ثانية - الهندسة المعمارية_ترم اول.xlsx",
-            "ثانية - الهندسة المعمارية_ترم ثاني.xlsx",
-            "رابعة -  الهندسة المدنية_ترم اول.xlsx",
-            "رابعة -  الهندسة المدنية_ترم ثاني.xlsx",
-            "رابعة - الهندسة المعمارية (1)_ترم ثاني.xlsx",
-            "رابعة - الهندسة المعمارية_ترم اول.xlsx",
-            "رابعة - الهندسة المعمارية_ترم ثاني.xlsx",
-            "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم اول.xlsx",
-            "رابعة - هندسة  الألكترونيات والإتصالات الكهربية_ترم ثاني.xlsx",
-            "رابعة - هندسة الحاسبات والتحكم_ترم اول.xlsx",
-            "رابعة - هندسة الحاسبات والتحكم_ترم ثاني.xlsx",
-            // Combined summary files (_مجمع)
-            "الاعدادية_مجمع.xlsx",
-            "الأولي -  الهندسة الكهربية_مجمع.xlsx",
-            "الأولي - الهندسة المدنية_مجمع.xlsx",
-            "الأولي - الهندسة المعمارية_مجمع.xlsx",
-            "الثالثة- الهندسة المدنية_مجمع.xlsx",
-            "الثالثة- الهندسة المعمارية_مجمع.xlsx",
-            "الثالثة- هندسة الألكترونيات والإتصالات الكهربية_مجمع.xlsx",
-            "الثالثة- هندسة الحاسبات والتحكم_مجمع.xlsx",
-            "الثانية-  الهندسة الكهربية_مجمع.xlsx",
-            "الثانية-  الهندسة المدنية_مجمع.xlsx",
-            "الثانية- الهندسة المعمارية_مجمع.xlsx",
-            "الرابعة-الهندسة المدنية_مجمع.xlsx",
-            "الرابعة-الهندسة المعمارية_مجمع.xlsx",
-            "الرابعة-هندسة الألكترونيات والإتصالات الكهربية_مجمع.xlsx",
-            "الرابعة-هندسة الحاسبات والتحكم_مجمع.xlsx"
+            "الاعدادية 2024.xlsx",
+            "الاعدادية 2025.xlsx",
+            "الاعدادية 2026.xlsx",
+            "الأولي -الهندسة الكهربية 2024.xlsx",
+            "الأولي -الهندسة الكهربية 2025.xlsx",
+            "الأولي -الهندسة الكهربية 2026.xlsx",
+            "الأولي -الهندسة المدنية 2024.xlsx",
+            "الأولي -الهندسة المدنية 2025.xlsx",
+            "الأولي -الهندسة المدنية 2026.xlsx",
+            "الأولي -الهندسة المعمارية 2024.xlsx",
+            "الأولي -الهندسة المعمارية 2025.xlsx",
+            "الأولي -الهندسة المعمارية 2026.xlsx",
+            "الثالثة-الهندسة  الألكترونيات والإتصالات 2024.xlsx",
+            "الثالثة-الهندسة  الألكترونيات والإتصالات 2025.xlsx",
+            "الثالثة-الهندسة  الألكترونيات والإتصالات 2026.xlsx",
+            "الثالثة-الهندسة الحاسبات والتحكم 2024.xlsx",
+            "الثالثة-الهندسة الحاسبات والتحكم 2025.xlsx",
+            "الثالثة-الهندسة الحاسبات والتحكم 2026.xlsx",
+            "الثالثة-الهندسة المدنية 2024.xlsx",
+            "الثالثة-الهندسة المدنية 2025.xlsx",
+            "الثالثة-الهندسة المدنية 2026.xlsx",
+            "الثالثة-الهندسة المعمارية 2024.xlsx",
+            "الثالثة-الهندسة المعمارية 2025.xlsx",
+            "الثالثة-الهندسة المعمارية 2026.xlsx",
+            "الثانية -الهندسة الكهربية 2024.xlsx",
+            "الثانية -الهندسة الكهربية 2026.xlsx",
+            "الثانية -الهندسة المعمارية 2024.xlsx",
+            "الثانية -الهندسة المعمارية 2025.xlsx",
+            "الثانية -الهندسة المعمارية 2026.xlsx",
+            "الثانية-الهندسة المدنية 2024.xlsx",
+            "الثانية-الهندسة المدنية 2025.xlsx",
+            "الثانية-الهندسة المدنية 2026.xlsx",
+            "الرابعة -الهندسة الحاسبات والتحكم 2024.xlsx",
+            "الرابعة -الهندسة الحاسبات والتحكم 2025.xlsx",
+            "الرابعة -الهندسة الحاسبات والتحكم 2026.xlsx",
+            "الرابعة-الهندسة  الألكترونيات والإتصالات 2024.xlsx",
+            "الرابعة-الهندسة  الألكترونيات والإتصالات 2025.xlsx",
+            "الرابعة-الهندسة  الألكترونيات والإتصالات 2026.xlsx",
+            "الرابعة-الهندسة المدنية 2024.xlsx",
+            "الرابعة-الهندسة المدنية 2025.xlsx",
+            "الرابعة-الهندسة المدنية 2026.xlsx",
+            "الرابعة-الهندسة المعمارية 2024.xlsx",
+            "الرابعة-الهندسة المعمارية 2025.xlsx",
+            "الرابعة-الهندسة المعمارية 2026.xlsx"
         ];
         // ==========================================
 
         const GRADE_KEYS = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م", "غب", "غ", "ح", "رت"];
 
-        let database = {}; 
+        let database = {}; // Structure: database[baseDeptName][subjStr][year][metricKey]
         let chartInstance = null;
         let currentZoom = 1.0;
 
@@ -533,30 +522,27 @@
             '2026': '#1e6b28'
         };
 
-        // الدالة المحسنة لاستخراج أسماء الفِرَق بدون كلمة "_مجمع" مع تنظيف المسافات والرموز
+        // Extract base department name and year from file name
         function parseFileName(fileName) {
-            // استخراج اسم الملف فقط لو تم إرسال مسار كامل
             let cleanName = fileName.split(/[\\/]/).pop();
-            
-            // إزالة امتداد الملف والمسافات الخفية (non-breaking spaces)
             cleanName = cleanName.replace(/\.xlsx$/i, "").replace(/\.xls$/i, "").replace(/\u00A0/g, " ").trim();
             
-            let sem = "إجمالي";
-            if (cleanName.includes("_ترم اول")) {
-                sem = "ترم أول";
-                cleanName = cleanName.replace("_ترم اول", "");
-            } else if (cleanName.includes("_ترم ثاني")) {
-                sem = "ترم ثاني";
-                cleanName = cleanName.replace("_ترم ثاني", "");
-            } else if (cleanName.includes("_مجمع")) {
-                sem = "إجمالي";
-                cleanName = cleanName.replace("_مجمع", "");
+            let detectedYear = null;
+            coreYears.forEach(y => {
+                if (cleanName.includes(y)) {
+                    detectedYear = y;
+                }
+            });
+
+            let baseDept = cleanName;
+            if (detectedYear) {
+                baseDept = cleanName.replace(detectedYear, "");
             }
 
-            // تنظيف اسم الفرقة بالكامل من المسافات الزائدة وحذف الكلمة نهائياً
-            cleanName = cleanName.replace(/_مجمع/g, "").replace(/\s+/g, " ").trim();
+            // Clean spacing and formatting
+            baseDept = baseDept.replace(/_مجمع/g, "").replace(/\s+/g, " ").trim();
 
-            return { base: cleanName, sem: sem };
+            return { base: baseDept, year: detectedYear };
         }
 
         window.onload = async function() {
@@ -584,86 +570,80 @@
 
                     const parsed = parseFileName(fileName);
                     const baseName = parsed.base;
-                    const semName = parsed.sem;
+                    const year = parsed.year;
+
+                    if (!baseName || !year) continue;
 
                     if (!database[baseName]) database[baseName] = {};
-                    if (!database[baseName][semName]) database[baseName][semName] = {};
 
-                    let sheetMappings = {};
-                    coreYears.forEach((year, index) => {
-                        let matchedSheet = workbook.SheetNames.find(sn => sn.includes(year));
-                        sheetMappings[year] = matchedSheet ? matchedSheet : workbook.SheetNames[index];
-                    });
+                    // Read first sheet of the file
+                    const firstSheetName = workbook.SheetNames[0];
+                    if (!firstSheetName) continue;
 
-                    coreYears.forEach(year => {
-                        const targetSheetName = sheetMappings[year];
-                        if (!targetSheetName) return; 
+                    const sheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-                        const sheet = workbook.Sheets[targetSheetName];
-                        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    if (jsonData.length === 0) continue;
 
-                        if (jsonData.length === 0) return;
+                    const headerRow = jsonData[0] || [];
+                    let subjectColIndex = 2; // Default C
+                    let passRateColIndex = 18; // Default S
+                    let gradeColMap = {};
 
-                        const headerRow = jsonData[0] || [];
-                        let subjectColIndex = 2; // Default C
-                        let passRateColIndex = semName === "إجمالي" ? 18 : 10; // Default S (18) for مجمع
-                        let gradeColMap = {};
+                    headerRow.forEach((cell, colIdx) => {
+                        if (!cell) return;
+                        const cellTxt = String(cell).trim();
 
-                        headerRow.forEach((cell, colIdx) => {
-                            if (!cell) return;
-                            const cellTxt = String(cell).trim();
+                        if (cellTxt.includes("اسم المقرر") || cellTxt === "المقرر") {
+                            subjectColIndex = colIdx;
+                        }
+                        if (cellTxt.includes("نسبة النجاح") || cellTxt.includes("نسبه النجاح")) {
+                            passRateColIndex = colIdx;
+                        }
 
-                            if (cellTxt.includes("اسم المقرر") || cellTxt === "المقرر") {
-                                subjectColIndex = colIdx;
+                        GRADE_KEYS.forEach(gk => {
+                            if (cellTxt === gk) {
+                                gradeColMap[gk] = colIdx;
                             }
-                            if (cellTxt.includes("نسبة النجاح") || cellTxt.includes("نسبه النجاح")) {
-                                passRateColIndex = colIdx;
-                            }
-
-                            GRADE_KEYS.forEach(gk => {
-                                if (cellTxt === gk) {
-                                    gradeColMap[gk] = colIdx;
-                                }
-                            });
-                        });
-
-                        jsonData.forEach((row, idx) => {
-                            if (idx === 0) return; 
-                            
-                            const subjectName = row[subjectColIndex];
-                            if (!subjectName) return;
-                            const subjStr = String(subjectName).trim();
-
-                            if (!database[baseName][semName][subjStr]) {
-                                database[baseName][semName][subjStr] = {};
-                            }
-                            if (!database[baseName][semName][subjStr][year]) {
-                                database[baseName][semName][subjStr][year] = {};
-                            }
-
-                            // Process Pass Rate (Col S / Index 18)
-                            const passRate = row[passRateColIndex];
-                            if (passRate !== undefined && passRate !== null) {
-                                let numericRate = parseFloat(String(passRate).replace('%', '').trim());
-                                if (!isNaN(numericRate)) {
-                                    let decimalVal = numericRate > 1 ? numericRate / 100 : numericRate;
-                                    database[baseName][semName][subjStr][year]['PASS_RATE'] = decimalVal;
-                                }
-                            }
-
-                            // Process Detailed Grades
-                            GRADE_KEYS.forEach(gk => {
-                                const colIdx = gradeColMap[gk];
-                                if (colIdx !== undefined && row[colIdx] !== undefined && row[colIdx] !== null) {
-                                    let countVal = parseInt(row[colIdx], 10);
-                                    if (!isNaN(countVal)) {
-                                        database[baseName][semName][subjStr][year][gk] = countVal;
-                                    }
-                                }
-                            });
                         });
                     });
-                    
+
+                    jsonData.forEach((row, idx) => {
+                        if (idx === 0) return; // Skip Header
+                        
+                        const subjectName = row[subjectColIndex];
+                        if (!subjectName) return;
+                        const subjStr = String(subjectName).trim();
+
+                        if (!database[baseName][subjStr]) {
+                            database[baseName][subjStr] = {};
+                        }
+                        if (!database[baseName][subjStr][year]) {
+                            database[baseName][subjStr][year] = {};
+                        }
+
+                        // Process Pass Rate
+                        const passRate = row[passRateColIndex];
+                        if (passRate !== undefined && passRate !== null) {
+                            let numericRate = parseFloat(String(passRate).replace('%', '').trim());
+                            if (!isNaN(numericRate)) {
+                                let decimalVal = numericRate > 1 ? numericRate / 100 : numericRate;
+                                database[baseName][subjStr][year]['PASS_RATE'] = decimalVal;
+                            }
+                        }
+
+                        // Process Detailed Grades
+                        GRADE_KEYS.forEach(gk => {
+                            const colIdx = gradeColMap[gk];
+                            if (colIdx !== undefined && row[colIdx] !== undefined && row[colIdx] !== null) {
+                                let countVal = parseInt(row[colIdx], 10);
+                                if (!isNaN(countVal)) {
+                                    database[baseName][subjStr][year][gk] = countVal;
+                                }
+                            }
+                        });
+                    });
+
                     successCount++;
                 } catch (error) {
                     missingFiles.push(fileName);
@@ -686,7 +666,7 @@
             const dropdown = document.getElementById('yearDropdown');
             dropdown.innerHTML = '<option value="">-- اختر الفرقة الدراسية --</option>';
 
-            Object.keys(database).forEach(baseName => {
+            Object.keys(database).sort().forEach(baseName => {
                 dropdown.innerHTML += `<option value="${baseName}">${baseName}</option>`;
             });
 
@@ -694,8 +674,6 @@
         }
 
         function resetDropdowns() {
-            document.getElementById('semesterDropdown').innerHTML = '<option value="">-- اختر الفصل الدراسي --</option>';
-            document.getElementById('semesterDropdown').disabled = true;
             document.getElementById('metricDropdown').disabled = true;
             document.getElementById('subjectDropdown').innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
             document.getElementById('subjectDropdown').disabled = true;
@@ -703,7 +681,6 @@
 
         function onYearSelectionChange() {
             const baseName = document.getElementById('yearDropdown').value;
-            const semDrop = document.getElementById('semesterDropdown');
             const metricDrop = document.getElementById('metricDropdown');
             const subjDrop = document.getElementById('subjectDropdown');
 
@@ -713,46 +690,11 @@
                 return;
             }
 
-            semDrop.disabled = false;
-            semDrop.innerHTML = '<option value="">-- اختر الفصل الدراسي --</option>';
-
-            const availableSemesters = Object.keys(database[baseName]);
-
-            if (availableSemesters.includes("إجمالي")) {
-                semDrop.innerHTML += `<option value="إجمالي">إجمالي</option>`;
-            }
-
-            availableSemesters.forEach(sem => {
-                if (sem !== "إجمالي") {
-                    semDrop.innerHTML += `<option value="${sem}">${sem}</option>`;
-                }
-            });
-
-            metricDrop.disabled = true;
-            subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
-            subjDrop.disabled = true;
-            refreshVisuals();
-        }
-
-        function onSemesterSelectionChange() {
-            const baseName = document.getElementById('yearDropdown').value;
-            const semName = document.getElementById('semesterDropdown').value;
-            const metricDrop = document.getElementById('metricDropdown');
-            const subjDrop = document.getElementById('subjectDropdown');
-
-            if (!semName) {
-                metricDrop.disabled = true;
-                subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
-                subjDrop.disabled = true;
-                refreshVisuals();
-                return;
-            }
-
             metricDrop.disabled = false;
             subjDrop.disabled = false;
             subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
-            
-            const subjects = Object.keys(database[baseName][semName]);
+
+            const subjects = Object.keys(database[baseName]);
             subjects.forEach(subj => {
                 subjDrop.innerHTML += `<option value="${subj}">${subj}</option>`;
             });
@@ -762,13 +704,12 @@
 
         function refreshVisuals() {
             const baseName = document.getElementById('yearDropdown').value;
-            const semName = document.getElementById('semesterDropdown').value;
             const selectedMetric = document.getElementById('metricDropdown').value;
             const selectedSubject = document.getElementById('subjectDropdown').value;
             const mainContent = document.getElementById('dashboardMain');
             const formatToggleWrapper = document.getElementById('formatToggleWrapper');
 
-            if (!baseName || !semName) {
+            if (!baseName) {
                 mainContent.classList.add('hidden');
                 return;
             }
@@ -781,8 +722,8 @@
 
             mainContent.classList.remove('hidden');
 
-            const fileData = database[baseName][semName];
-            let subjectsToRender = Object.keys(fileData);
+            const deptData = database[baseName];
+            let subjectsToRender = Object.keys(deptData);
 
             if (selectedSubject && selectedSubject !== 'ALL') {
                 subjectsToRender = [selectedSubject];
@@ -792,11 +733,11 @@
             document.getElementById('tableCardTitle').innerText = `جدول مقارنة المقررات حسب (${metricLabel})`;
             document.getElementById('chartCardTitle').innerText = `المخطط البياني للمقارنة حسب (${metricLabel})`;
 
-            renderMatrixTable(fileData, subjectsToRender, selectedMetric);
-            renderChart(fileData, subjectsToRender, selectedMetric);
+            renderMatrixTable(deptData, subjectsToRender, selectedMetric);
+            renderChart(deptData, subjectsToRender, selectedMetric);
         }
 
-        function renderMatrixTable(fileData, subjects, metric) {
+        function renderMatrixTable(deptData, subjects, metric) {
             const tbody = document.getElementById('tableBody');
             const isPercentage = document.getElementById('formatToggle').checked;
             tbody.innerHTML = '';
@@ -806,7 +747,7 @@
                 let rowHTML = `<td>${subj}</td>`;
 
                 coreYears.forEach(year => {
-                    const yearData = fileData[subj] ? fileData[subj][year] : null;
+                    const yearData = deptData[subj] ? deptData[subj][year] : null;
                     const val = yearData ? yearData[metric] : undefined;
                     let displayVal = '-';
                     
@@ -829,7 +770,7 @@
             });
         }
 
-        function renderChart(fileData, subjects, metric) {
+        function renderChart(deptData, subjects, metric) {
             const ctx = document.getElementById('comparisonChart').getContext('2d');
             const isPercentage = document.getElementById('formatToggle').checked;
 
@@ -841,7 +782,7 @@
 
             const datasets = coreYears.map(year => {
                 const dataValues = subjects.map(subj => {
-                    const yearData = fileData[subj] ? fileData[subj][year] : null;
+                    const yearData = deptData[subj] ? deptData[subj][year] : null;
                     const val = yearData ? yearData[metric] : undefined;
                     if (val === undefined) return 0;
 
