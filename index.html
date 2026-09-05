@@ -384,11 +384,11 @@
                 </select>
             </div>
 
-            <!-- Switch for Registered (Col D) and Attendants (Col E) -->
+            <!-- Switch for Registered & Attendants Columns Visualization -->
             <div class="toggle-container" id="countsToggleWrapper">
-                <span class="toggle-label">👥 إظهار المقيدين (D) والحاضرين (E):</span>
+                <span class="toggle-label">👥 إظهار اعمدة المقيدين والحاضرين بالمخطط:</span>
                 <label class="switch">
-                    <input type="checkbox" id="showCountsToggle" onchange="refreshVisuals()">
+                    <input type="checkbox" id="showCountsToggle" checked onchange="refreshVisuals()">
                     <span class="slider"></span>
                 </label>
             </div>
@@ -699,13 +699,10 @@
 
             if (selectedMetric === 'ALL_GRADES') {
                 allGradesYearGroup.classList.remove('hidden');
-                countsToggleWrapper.style.display = 'none';
-            } else if (selectedMetric === 'PASS_RATE') {
-                allGradesYearGroup.classList.add('hidden');
                 countsToggleWrapper.style.display = 'flex';
             } else {
                 allGradesYearGroup.classList.add('hidden');
-                countsToggleWrapper.style.display = 'none';
+                countsToggleWrapper.style.display = 'flex';
             }
 
             refreshVisuals();
@@ -783,11 +780,7 @@
                 return;
             }
 
-            if (selectedMetric === 'PASS_RATE') {
-                countsToggleWrapper.style.display = 'flex';
-            } else {
-                countsToggleWrapper.style.display = 'none';
-            }
+            countsToggleWrapper.style.display = 'flex';
 
             if (isPercentage) {
                 denomToggleWrapper.style.display = 'flex';
@@ -817,27 +810,55 @@
             renderChart(deptData, subjectsToRender, selectedMetric);
         }
 
+        // حساب إجمالي المقيدين والحاضرين الحقيقي لكل مقرر وسنة
+        function getCalculatedCounts(yearData) {
+            if (!yearData) return { registered: 0, attendants: 0 };
+            
+            // 1. حساب أعداد المقيدين (شامل كل الأعداد بالحرمان والحاضرين والغياب والغياب بعذر والراسبين تحريري)
+            let calculatedReg = yearData['TOTAL_STUDENTS'] || 0;
+            let sumAllGrades = 0;
+            GRADE_KEYS.forEach(gk => {
+                if (yearData[gk] !== undefined) sumAllGrades += yearData[gk];
+            });
+            if (sumAllGrades > calculatedReg) calculatedReg = sumAllGrades;
+
+            // 2. حساب الحاضرين (يشمل كل من لهم تقديرات من (ض جـ إلى م) بالإضافة إلى (رت - راسب تحريري))
+            let calculatedAtt = yearData['ATTENDANTS_COUNT'] || 0;
+            let sumAttGrades = 0;
+            const attGradeKeys = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م", "رت"];
+            attGradeKeys.forEach(gk => {
+                if (yearData[gk] !== undefined) sumAttGrades += yearData[gk];
+            });
+            if (sumAttGrades > calculatedAtt) calculatedAtt = sumAttGrades;
+
+            return { registered: calculatedReg, attendants: calculatedAtt };
+        }
+
         function renderMatrixTable(deptData, subjects, metric) {
             const thead = document.getElementById('tableHead');
             const tbody = document.getElementById('tableBody');
             const isPercentage = document.getElementById('formatToggle').checked;
             const useAttendantsBase = document.getElementById('denomToggle').checked;
-            const showCounts = document.getElementById('showCountsToggle').checked && (metric === 'PASS_RATE');
             
             tbody.innerHTML = '';
 
             if (metric === 'ALL_GRADES') {
-                let headerRowHTML = `<tr><th>اسم المقرر</th>`;
-                GRADE_KEYS.forEach(gk => { headerRowHTML += `<th>${gk}</th>`; });
-                headerRowHTML += `</tr>`;
+                let headerRowHTML = `<tr>
+                    <th rowspan="2" style="vertical-align: middle;">اسم المقرر</th>
+                    <th colspan="2" class="year-group">الإحصائيات العامة</th>`;
+                GRADE_KEYS.forEach(gk => { headerRowHTML += `<th rowspan="2" style="vertical-align: middle;">${gk}</th>`; });
+                headerRowHTML += `</tr><tr><th>مقيد</th><th>حاضر</th></tr>`;
                 thead.innerHTML = headerRowHTML;
 
                 const selectedYear = document.getElementById('allGradesYearSelect').value;
 
                 subjects.forEach(subj => {
                     const tr = document.createElement('tr');
-                    let rowHTML = `<td>${subj}</td>`;
                     const yearData = deptData[subj] ? deptData[subj][selectedYear] : null;
+                    const counts = getCalculatedCounts(yearData);
+
+                    let rowHTML = `<td>${subj}</td>`;
+                    rowHTML += `<td><b>${counts.registered}</b></td><td><b>${counts.attendants}</b></td>`;
 
                     GRADE_KEYS.forEach(gk => {
                         const valObj = getFormattedValue(yearData, gk, isPercentage, useAttendantsBase);
@@ -847,7 +868,7 @@
                     tr.innerHTML = rowHTML;
                     tbody.appendChild(tr);
                 });
-            } else if (metric === 'PASS_RATE' && showCounts) {
+            } else {
                 thead.innerHTML = `
                     <tr>
                         <th rowspan="2" style="vertical-align: middle;">اسم المقرر</th>
@@ -856,9 +877,9 @@
                         <th colspan="3" class="year-group">2026</th>
                     </tr>
                     <tr>
-                        <th>مقيد</th><th>حاضر</th><th>النسبة</th>
-                        <th>مقيد</th><th>حاضر</th><th>النسبة</th>
-                        <th>مقيد</th><th>حاضر</th><th>النسبة</th>
+                        <th>مقيد</th><th>حاضر</th><th>القيمة / النسبة</th>
+                        <th>مقيد</th><th>حاضر</th><th>القيمة / النسبة</th>
+                        <th>مقيد</th><th>حاضر</th><th>القيمة / النسبة</th>
                     </tr>
                 `;
 
@@ -868,32 +889,10 @@
 
                     coreYears.forEach(year => {
                         const yearData = deptData[subj] ? deptData[subj][year] : null;
-                        const reg = yearData ? (yearData['TOTAL_STUDENTS'] ?? '-') : '-';
-                        const att = yearData ? (yearData['ATTENDANTS_COUNT'] ?? '-') : '-';
+                        const counts = getCalculatedCounts(yearData);
                         const valObj = getFormattedValue(yearData, metric, isPercentage, useAttendantsBase);
 
-                        rowHTML += `<td>${reg}</td><td>${att}</td><td><b>${valObj.text}</b></td>`;
-                    });
-
-                    tr.innerHTML = rowHTML;
-                    tbody.appendChild(tr);
-                });
-            } else {
-                thead.innerHTML = `<tr>
-                    <th>اسم المقرر</th>
-                    <th>2024</th>
-                    <th>2025</th>
-                    <th>2026</th>
-                </tr>`;
-
-                subjects.forEach(subj => {
-                    const tr = document.createElement('tr');
-                    let rowHTML = `<td>${subj}</td>`;
-
-                    coreYears.forEach(year => {
-                        const yearData = deptData[subj] ? deptData[subj][year] : null;
-                        const valObj = getFormattedValue(yearData, metric, isPercentage, useAttendantsBase);
-                        rowHTML += `<td>${valObj.text}</td>`;
+                        rowHTML += `<td>${counts.registered}</td><td>${counts.attendants}</td><td><b>${valObj.text}</b></td>`;
                     });
 
                     tr.innerHTML = rowHTML;
@@ -906,7 +905,7 @@
             const ctx = document.getElementById('comparisonChart').getContext('2d');
             const isPercentage = document.getElementById('formatToggle').checked;
             const useAttendantsBase = document.getElementById('denomToggle').checked;
-            const showCounts = document.getElementById('showCountsToggle').checked && (metric === 'PASS_RATE');
+            const showCountsInChart = document.getElementById('showCountsToggle').checked;
 
             if (chartInstance) {
                 chartInstance.destroy();
@@ -919,7 +918,40 @@
             if (metric === 'ALL_GRADES') {
                 const selectedYear = document.getElementById('allGradesYearSelect').value;
 
-                datasets = GRADE_KEYS.map(gk => {
+                if (showCountsInChart) {
+                    const regData = [];
+                    const attData = [];
+                    subjects.forEach(subj => {
+                        const yearData = deptData[subj] ? deptData[subj][selectedYear] : null;
+                        const counts = getCalculatedCounts(yearData);
+                        regData.push(counts.registered);
+                        attData.push(counts.attendants);
+                        if (counts.registered > maxCountFound) maxCountFound = counts.registered;
+                        if (counts.attendants > maxCountFound) maxCountFound = counts.attendants;
+                    });
+
+                    datasets.push({
+                        label: 'مقيد',
+                        data: regData,
+                        backgroundColor: '#64748b',
+                        borderColor: '#475569',
+                        borderWidth: 1,
+                        yAxisID: 'yCounts',
+                        barPercentage: 0.85
+                    });
+
+                    datasets.push({
+                        label: 'حاضر',
+                        data: attData,
+                        backgroundColor: '#0d9488',
+                        borderColor: '#0f766e',
+                        borderWidth: 1,
+                        yAxisID: 'yCounts',
+                        barPercentage: 0.85
+                    });
+                }
+
+                GRADE_KEYS.forEach(gk => {
                     const dataValues = subjects.map(subj => {
                         const yearData = deptData[subj] ? deptData[subj][selectedYear] : null;
                         const valObj = getFormattedValue(yearData, gk, isPercentage, useAttendantsBase);
@@ -927,101 +959,79 @@
                         return valObj.numeric;
                     });
 
-                    return {
+                    datasets.push({
                         label: gk,
                         data: dataValues,
                         backgroundColor: gradeColorMap[gk] || '#0284c7',
                         borderColor: gradeColorMap[gk] || '#0284c7',
                         borderWidth: 1,
-                        barPercentage: 0.9,
-                        categoryPercentage: 0.8
-                    };
+                        yAxisID: showCountsInChart ? 'yRate' : 'y',
+                        barPercentage: 0.85
+                    });
                 });
-            } else if (metric === 'PASS_RATE' && showCounts) {
+            } else {
                 const yearStyleMap = {
-                    '2024': { reg: '#94a3b8', att: '#64748b', rate: '#1d6385' },
-                    '2025': { reg: '#fdba74', att: '#fb923c', rate: '#ea652d' },
-                    '2026': { reg: '#86efac', att: '#4ade80', rate: '#1e6b28' }
+                    '2024': { reg: '#94a3b8', att: '#64748b', main: '#1d6385' },
+                    '2025': { reg: '#fdba74', att: '#fb923c', main: '#ea652d' },
+                    '2026': { reg: '#86efac', att: '#4ade80', main: '#1e6b28' }
                 };
 
                 coreYears.forEach(year => {
                     const regData = [];
                     const attData = [];
-                    const rateData = [];
+                    const mainData = [];
 
                     subjects.forEach(subj => {
                         const yearData = deptData[subj] ? deptData[subj][year] : null;
-                        const reg = yearData ? (yearData['TOTAL_STUDENTS'] || 0) : 0;
-                        const att = yearData ? (yearData['ATTENDANTS_COUNT'] || 0) : 0;
-                        const valObj = getFormattedValue(yearData, 'PASS_RATE', isPercentage, useAttendantsBase);
-
-                        if (reg > maxCountFound) maxCountFound = reg;
-                        if (att > maxCountFound) maxCountFound = att;
-                        if (valObj.numeric > maxValFound) maxValFound = valObj.numeric;
-
-                        regData.push(reg);
-                        attData.push(att);
-                        rateData.push(valObj.numeric);
-                    });
-
-                    datasets.push({
-                        label: `${year} - مقيد`,
-                        data: regData,
-                        backgroundColor: yearStyleMap[year].reg,
-                        borderColor: yearStyleMap[year].att,
-                        borderWidth: 1,
-                        yAxisID: 'yCounts',
-                        barPercentage: 0.95,
-                        categoryPercentage: 0.85
-                    });
-
-                    datasets.push({
-                        label: `${year} - حاضر`,
-                        data: attData,
-                        backgroundColor: yearStyleMap[year].att,
-                        borderColor: yearStyleMap[year].rate,
-                        borderWidth: 1,
-                        yAxisID: 'yCounts',
-                        barPercentage: 0.95,
-                        categoryPercentage: 0.85
-                    });
-
-                    datasets.push({
-                        label: `${year} - نسبة %`,
-                        data: rateData,
-                        backgroundColor: yearStyleMap[year].rate,
-                        borderColor: yearStyleMap[year].rate,
-                        borderWidth: 1,
-                        yAxisID: 'yRate',
-                        barPercentage: 0.95,
-                        categoryPercentage: 0.85
-                    });
-                });
-            } else {
-                datasets = coreYears.map(year => {
-                    const dataValues = subjects.map(subj => {
-                        const yearData = deptData[subj] ? deptData[subj][year] : null;
+                        const counts = getCalculatedCounts(yearData);
                         const valObj = getFormattedValue(yearData, metric, isPercentage, useAttendantsBase);
+
+                        if (counts.registered > maxCountFound) maxCountFound = counts.registered;
+                        if (counts.attendants > maxCountFound) maxCountFound = counts.attendants;
                         if (valObj.numeric > maxValFound) maxValFound = valObj.numeric;
-                        return valObj.numeric;
+
+                        regData.push(counts.registered);
+                        attData.push(counts.attendants);
+                        mainData.push(valObj.numeric);
                     });
 
-                    return {
-                        label: year,
-                        data: dataValues,
-                        backgroundColor: yearColorMap[year],
-                        borderColor: yearColorMap[year],
+                    if (showCountsInChart) {
+                        datasets.push({
+                            label: `${year} - مقيد`,
+                            data: regData,
+                            backgroundColor: yearStyleMap[year].reg,
+                            borderColor: yearStyleMap[year].att,
+                            borderWidth: 1,
+                            yAxisID: 'yCounts',
+                            barPercentage: 0.9
+                        });
+
+                        datasets.push({
+                            label: `${year} - حاضر`,
+                            data: attData,
+                            backgroundColor: yearStyleMap[year].att,
+                            borderColor: yearStyleMap[year].main,
+                            borderWidth: 1,
+                            yAxisID: 'yCounts',
+                            barPercentage: 0.9
+                        });
+                    }
+
+                    datasets.push({
+                        label: `${year} - ${metric === 'PASS_RATE' ? 'نسبة النجاح' : metric}`,
+                        data: mainData,
+                        backgroundColor: yearStyleMap[year].main,
+                        borderColor: yearStyleMap[year].main,
                         borderWidth: 1,
-                        barPercentage: 0.85,
-                        categoryPercentage: 0.75,
-                        maxBarThickness: 75
-                    };
+                        yAxisID: showCountsInChart ? 'yRate' : 'y',
+                        barPercentage: 0.9
+                    });
                 });
             }
 
             let scalesConfig = {};
 
-            if (metric === 'PASS_RATE' && showCounts) {
+            if (showCountsInChart) {
                 scalesConfig = {
                     x: {
                         grouped: true,
@@ -1040,8 +1050,8 @@
                         type: 'linear',
                         position: 'left',
                         beginAtZero: true,
-                        max: isPercentage ? 115 : 1.15,
-                        title: { display: true, text: isPercentage ? 'نسبة النجاح (%)' : 'نسبة النجاح (عشري)', font: { weight: 'bold' } },
+                        max: isPercentage ? (maxValFound > 100 ? Math.ceil(maxValFound * 1.15) : 115) : (metric === 'PASS_RATE' ? 1.15 : Math.ceil(maxValFound * 1.2)),
+                        title: { display: true, text: isPercentage ? 'النسبة (%)' : 'القيمة', font: { weight: 'bold' } },
                         grid: { display: false }
                     }
                 };
@@ -1098,7 +1108,7 @@
                             font: { weight: 'bold', size: 9 },
                             formatter: (value, context) => {
                                 if (!value || value === 0) return '';
-                                if (showCounts && context.dataset.yAxisID === 'yCounts') {
+                                if (showCountsInChart && context.dataset.yAxisID === 'yCounts') {
                                     return value;
                                 }
                                 if (isPercentage) {
