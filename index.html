@@ -1,4 +1,908 @@
-function renderChart(deptData, subjects, metric) {
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحليل ومقارنة نتائج المقررات والتقديرات</title>
+    <!-- SheetJS for offline/hosted Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js & DataLabels -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            min-height: 100vh;
+            color: #0f172a;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #38bdf8;
+            transition: all 0.3s ease;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0284c7;
+        }
+
+        .controls-top {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #0284c7, #0d9488);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-action {
+            background: linear-gradient(270deg, #0284c7, #10b981, #0ea5e9, #14b8a6);
+            background-size: 300% 300%;
+            animation: gradientBtnMove 4s ease infinite;
+        }
+
+        @keyframes gradientBtnMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .floating-toggle {
+            position: fixed;
+            bottom: 45px;
+            right: 20px;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0284c7, #10b981);
+            color: white;
+            font-size: 24px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 999;
+            transition: transform 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .floating-toggle:hover {
+            transform: scale(1.15);
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            margin: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .status-box {
+            border: 2px solid #38bdf8;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+            background: rgba(240, 249, 255, 0.8);
+            font-weight: bold;
+            color: #0284c7;
+        }
+
+        .control-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+            margin-top: 10px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            min-width: 220px;
+        }
+
+        label {
+            font-size: 15px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        select {
+            padding: 11px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 15px;
+            background: white;
+            outline: none;
+            width: 100%;
+        }
+
+        select:focus {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+        }
+
+        select:disabled {
+            background: #f1f5f9;
+            cursor: not-allowed;
+            color: #94a3b8;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f1f5f9;
+            padding: 9px 14px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            height: 45px;
+            white-space: nowrap;
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #10b981;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .main-content {
+            padding: 0 20px 60px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex-grow: 1;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e0f2fe;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0369a1;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            text-align: center;
+            direction: rtl;
+        }
+
+        th, td {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+        }
+
+        th {
+            background: #f1f5f9;
+            color: #0f172a;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        th.year-group {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 16px;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }        
+
+        tr:hover {
+            background-color: #f0f9ff;
+        }
+
+        td:first-child {
+            font-weight: 700;
+            text-align: right;
+            background: #fdfdfd;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 520px;
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        footer {
+            margin-top: auto;
+            height: 40px;
+            background: linear-gradient(90deg, #0284c7, #10b981, #f59e0b, #0284c7);
+            background-size: 300% 100%;
+            animation: gradientFooterMove 6s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        @keyframes gradientFooterMove {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <header id="appHeader">
+        <h1>📊 لوحة مقارنة النتائج والتقديرات التفاعلية</h1>
+        <div class="controls-top">
+            <button class="btn" onclick="toggleFullScreen()">📺 ملء الشاشة (F11)</button>
+            <button class="btn" onclick="adjustZoom(0.1)">🔍 +</button>
+            <button class="btn" onclick="adjustZoom(-0.1)">🔍 –</button>
+        </div>
+    </header>
+
+    <div class="panel" id="controlPanel">
+        <div class="status-box" id="loadStatus">
+            ⏳ جاري تحميل البيانات من الخادم... يرجى الانتظار.
+        </div>
+
+        <div class="control-grid hidden" id="filterSection">
+            <!-- 1. Year/Department Selection -->
+            <div class="filter-group">
+                <label for="yearDropdown">1. الفرقة الدراسية:</label>
+                <select id="yearDropdown" onchange="onYearSelectionChange()">
+                    <option value="">-- يرجى اختيار الفرقة الدراسية --</option>
+                </select>
+            </div>
+
+            <!-- 2. Metric Comparison Selection -->
+            <div class="filter-group">
+                <label for="metricDropdown">2. معيار المقارنة:</label>
+                <select id="metricDropdown" onchange="onMetricSelectionChange()" disabled>
+                    <option value="PASS_RATE">نسبة النجاح (العمود S)</option>
+                    <option value="ALL_GRADES">📊 جميع التقديرات (توزيع كامل لكل مقرر)</option>
+                    <optgroup label="مقارنة تقدير محدد عبر السنوات (2024 - 2026)">
+                        <option value="ض جـ">ضعيف جداً (ض جـ)</option>
+                        <option value="ض">ضعيف (ض)</option>
+                        <option value="ل">مقبول (ل)</option>
+                        <option value="جـ">جيد (جـ)</option>
+                        <option value="جـ جـ">جيد جداً (جـ جـ)</option>
+                        <option value="م">ممتاز (م)</option>
+                        <option value="غب">غائب بعذر (غب)</option>
+                        <option value="غ">غائب (غ)</option>
+                        <option value="ح">حرمان (ح)</option>
+                        <option value="رت">راسب تحريري (رت)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- Switch for Registered (Col D) and Attendants (Col E) -->
+            <div class="toggle-container" id="countsToggleWrapper">
+                <span class="toggle-label">👥 إظهار المقيدين (D) والحاضرين (E):</span>
+                <label class="switch">
+                    <input type="checkbox" id="showCountsToggle" onchange="refreshVisuals()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- 2.1 Year Selection for ALL_GRADES Mode -->
+            <div class="filter-group hidden" id="allGradesYearGroup">
+                <label for="allGradesYearSelect">السنة الدراسية:</label>
+                <select id="allGradesYearSelect" onchange="refreshVisuals()">
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                </select>
+            </div>
+
+            <!-- 3. Single Subject Selection -->
+            <div class="filter-group">
+                <label for="subjectDropdown">3. تصفية حسب المقرر:</label>
+                <select id="subjectDropdown" onchange="refreshVisuals()" disabled>
+                    <option value="ALL">-- جميع المقررات --</option>
+                </select>
+            </div>
+            
+            <!-- Numbers vs Percentages Toggle -->
+            <div class="toggle-container" id="formatToggleWrapper">
+                <span class="toggle-label">أرقام / عشري</span>
+                <label class="switch">
+                    <input type="checkbox" id="formatToggle" checked onchange="refreshVisuals()">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label">نسب مئوية (%)</span>
+            </div>
+
+            <!-- Percentage Calculation Base -->
+            <div class="toggle-container" id="denomToggleWrapper">
+                <span class="toggle-label">أساس النسبة:</span>
+                <label class="switch">
+                    <input type="checkbox" id="denomToggle" checked onchange="refreshVisuals()">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label" id="denomLabelText">الحاضرين (ض جـ إلى م) [100%]</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content hidden" id="dashboardMain">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title" id="tableCardTitle">جدول مقارنة نتائج المقررات</div>
+                <button class="btn btn-action" onclick="copyTable()">📋 نسخ الجدول</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="comparisonTable">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title" id="chartCardTitle">المخطط البياني للمقارنة</div>
+                <button class="btn btn-action" onclick="copyChart()">🖼️ نسخ المخطط</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <button class="floating-toggle" onclick="toggleInterfaceElements()" title="إظهار / إخفاء القوائم">👁️</button>
+
+    <footer id="appFooter">
+        لوحة التحليل الذكي لمقارنة نتائج المقررات والتقديرات
+    </footer>
+
+    <script>
+        const HOSTED_FILES = [
+            "الاعدادية 2024.xlsx", "الاعدادية 2025.xlsx", "الاعدادية 2026.xlsx",
+            "الأولي -الهندسة الكهربية 2024.xlsx", "الأولي -الهندسة الكهربية 2025.xlsx", "الأولي -الهندسة الكهربية 2026.xlsx",
+            "الأولي -الهندسة المدنية 2024.xlsx", "الأولي -الهندسة المدنية 2025.xlsx", "الأولي -الهندسة المدنية 2026.xlsx",
+            "الأولي -الهندسة المعمارية 2024.xlsx", "الأولي -الهندسة المعمارية 2025.xlsx", "الأولي -الهندسة المعمارية 2026.xlsx",
+            "الثالثة-الهندسة  الألكترونيات والإتصالات 2024.xlsx", "الثالثة-الهندسة  الألكترونيات والإتصالات 2025.xlsx", "الثالثة-الهندسة  الألكترونيات والإتصالات 2026.xlsx",
+            "الثالثة-الهندسة الحاسبات والتحكم 2024.xlsx", "الثالثة-الهندسة الحاسبات والتحكم 2025.xlsx", "الثالثة-الهندسة الحاسبات والتحكم 2026.xlsx",
+            "الثالثة-الهندسة المدنية 2024.xlsx", "الثالثة-الهندسة المدنية 2025.xlsx", "الثالثة-الهندسة المدنية 2026.xlsx",
+            "الثالثة-الهندسة المعمارية 2024.xlsx", "الثالثة-الهندسة المعمارية 2025.xlsx", "الثالثة-الهندسة المعمارية 2026.xlsx",
+            "الثانية -الهندسة الكهربية 2024.xlsx", "الثانية -الهندسة الكهربية 2026.xlsx",
+            "الثانية -الهندسة المعمارية 2024.xlsx", "الثانية -الهندسة المعمارية 2025.xlsx", "الثانية -الهندسة المعمارية 2026.xlsx",
+            "الثانية-الهندسة المدنية 2024.xlsx", "الثانية-الهندسة المدنية 2025.xlsx", "الثانية-الهندسة المدنية 2026.xlsx",
+            "الرابعة -الهندسة الحاسبات والتحكم 2024.xlsx", "الرابعة -الهندسة الحاسبات والتحكم 2025.xlsx", "الرابعة -الهندسة الحاسبات والتحكم 2026.xlsx",
+            "الرابعة-الهندسة  الألكترونيات والإتصالات 2024.xlsx", "الرابعة-الهندسة  الألكترونيات والإتصالات 2025.xlsx", "الرابعة-الهندسة  الألكترونيات والإتصالات 2026.xlsx",
+            "الرابعة-الهندسة المدنية 2024.xlsx", "الرابعة-الهندسة المدنية 2025.xlsx", "الرابعة-الهندسة المدنية 2026.xlsx",
+            "الرابعة-الهندسة المعمارية 2024.xlsx", "الرابعة-الهندسة المعمارية 2025.xlsx", "الرابعة-الهندسة المعمارية 2026.xlsx"
+        ];
+
+        const ATTENDANT_KEYS = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م"];
+        const GRADE_KEYS = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م", "غب", "غ", "ح", "رت"];
+
+        const gradeColorMap = {
+            'ض جـ': '#1d4ed8', 'ض': '#dc2626', 'ل': '#65a30d', 'جـ': '#7e22ce',
+            'جـ جـ': '#0284c7', 'م': '#ea580c', 'غب': '#d97706', 'غ': '#7f1d1d',
+            'ح': '#4d7c0f', 'رت': '#2563eb'
+        };
+
+        let database = {}; 
+        let chartInstance = null;
+        let currentZoom = 1.0;
+
+        Chart.register(ChartDataLabels);
+
+        const coreYears = ['2024', '2025', '2026'];
+        const yearColorMap = {
+            '2024': '#1d6385',
+            '2025': '#ea652d',
+            '2026': '#1e6b28'
+        };
+
+        function parseFileName(fileName) {
+            let cleanName = fileName.split(/[\\/]/).pop();
+            cleanName = cleanName.replace(/\.xlsx$/i, "").replace(/\.xls$/i, "").replace(/\u00A0/g, " ").trim();
+            
+            let detectedYear = null;
+            coreYears.forEach(y => {
+                if (cleanName.includes(y)) detectedYear = y;
+            });
+
+            let baseDept = cleanName;
+            if (detectedYear) baseDept = cleanName.replace(detectedYear, "");
+            baseDept = baseDept.replace(/_مجمع/g, "").replace(/\s+/g, " ").trim();
+
+            return { base: baseDept, year: detectedYear };
+        }
+
+        window.onload = async function() {
+            await fetchHostedFiles();
+        };
+
+        async function fetchHostedFiles() {
+            const statusBox = document.getElementById('loadStatus');
+            database = {}; 
+            let successCount = 0;
+
+            for (const fileName of HOSTED_FILES) {
+                try {
+                    const response = await fetch(`./${encodeURIComponent(fileName)}`);
+                    if (!response.ok) continue;
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const data = new Uint8Array(arrayBuffer);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    const parsed = parseFileName(fileName);
+                    const baseName = parsed.base;
+                    const year = parsed.year;
+                    if (!baseName || !year) continue;
+
+                    if (!database[baseName]) database[baseName] = {};
+
+                    const firstSheetName = workbook.SheetNames[0];
+                    if (!firstSheetName) continue;
+
+                    const sheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    if (jsonData.length === 0) continue;
+
+                    const headerRow = jsonData[0] || [];
+                    let subjectColIndex = 2;       // Col C
+                    let registeredColIndex = 3;    // Col D (المقيدين)
+                    let attendantsColIndex = 4;    // Col E (الحاضرين)
+                    let passRateColIndex = 18;     // Col S (نسبة النجاح)
+                    let gradeColMap = {};
+
+                    headerRow.forEach((cell, colIdx) => {
+                        if (!cell) return;
+                        const cellTxt = String(cell).trim();
+
+                        if (cellTxt.includes("اسم المقرر") || cellTxt === "المقرر") {
+                            subjectColIndex = colIdx;
+                        }
+                        if (cellTxt.includes("المقيد") || cellTxt.includes("المقيدين") || cellTxt.includes("الطلاب")) {
+                            registeredColIndex = colIdx;
+                        }
+                        if (cellTxt.includes("الحاضر") || cellTxt.includes("الحاضرين")) {
+                            attendantsColIndex = colIdx;
+                        }
+                        if (colIdx === 18 && (cellTxt.includes("نسبة النجاح") || cellTxt.includes("نسبه النجاح"))) {
+                            passRateColIndex = 18;
+                        }
+
+                        GRADE_KEYS.forEach(gk => {
+                            if (cellTxt === gk) gradeColMap[gk] = colIdx;
+                        });
+                    });
+
+                    jsonData.forEach((row, idx) => {
+                        if (idx === 0) return; 
+                        
+                        const subjectName = row[subjectColIndex];
+                        if (!subjectName) return;
+                        const subjStr = String(subjectName).trim();
+
+                        if (!database[baseName][subjStr]) database[baseName][subjStr] = {};
+                        if (!database[baseName][subjStr][year]) database[baseName][subjStr][year] = {};
+
+                        let regVal = parseInt(row[registeredColIndex], 10);
+                        let attVal = parseInt(row[attendantsColIndex], 10);
+
+                        database[baseName][subjStr][year]['TOTAL_STUDENTS'] = (!isNaN(regVal) && regVal >= 0) ? regVal : 0;
+                        database[baseName][subjStr][year]['ATTENDANTS_COUNT'] = (!isNaN(attVal) && attVal >= 0) ? attVal : 0;
+
+                        const passRate = row[passRateColIndex];
+                        if (passRate !== undefined && passRate !== null) {
+                            let numericRate = parseFloat(String(passRate).replace('%', '').trim());
+                            if (!isNaN(numericRate)) {
+                                let decimalVal = numericRate > 1 ? numericRate / 100 : numericRate;
+                                database[baseName][subjStr][year]['PASS_RATE'] = decimalVal;
+                            }
+                        }
+
+                        GRADE_KEYS.forEach(gk => {
+                            const colIdx = gradeColMap[gk];
+                            if (colIdx !== undefined && row[colIdx] !== undefined && row[colIdx] !== null) {
+                                let countVal = parseInt(row[colIdx], 10);
+                                if (!isNaN(countVal)) {
+                                    database[baseName][subjStr][year][gk] = countVal;
+                                }
+                            }
+                        });
+                    });
+
+                    successCount++;
+                } catch (error) {
+                    console.error(`Error processing ${fileName}:`, error);
+                }
+            }
+
+            if (successCount > 0) {
+                statusBox.style.display = 'none';
+                document.getElementById('filterSection').classList.remove('hidden');
+                populateYearDropdown();
+            } else {
+                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس مسار صفحة HTML وتطابق أسمائها بالكامل.";
+                statusBox.style.borderColor = "#ef4444";
+                statusBox.style.color = "#ef4444";
+            }
+        }
+
+        function getAcademicRank(deptName) {
+            if (deptName.includes("الاعدادية") || deptName.includes("إعدادي")) return 1;
+            if (deptName.includes("الأولي") || deptName.includes("الاولى") || deptName.includes("اولي")) return 2;
+            if (deptName.includes("الثانية") || deptName.includes("ثانية")) return 3;
+            if (deptName.includes("الثالثة") || deptName.includes("ثالثة")) return 4;
+            if (deptName.includes("الرابعة") || deptName.includes("رابعة")) return 5;
+            return 6;
+        }
+
+        function populateYearDropdown() {
+            const dropdown = document.getElementById('yearDropdown');
+            dropdown.innerHTML = '<option value="">-- اختر الفرقة الدراسية --</option>';
+
+            const sortedDepts = Object.keys(database).sort((a, b) => {
+                const rankA = getAcademicRank(a);
+                const rankB = getAcademicRank(b);
+                if (rankA !== rankB) return rankA - rankB;
+                return a.localeCompare(b, 'ar');
+            });
+
+            sortedDepts.forEach(baseName => {
+                dropdown.innerHTML += `<option value="${baseName}">${baseName}</option>`;
+            });
+
+            resetDropdowns();
+        }
+
+        function resetDropdowns() {
+            document.getElementById('metricDropdown').disabled = true;
+            document.getElementById('subjectDropdown').innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
+            document.getElementById('subjectDropdown').disabled = true;
+            document.getElementById('allGradesYearGroup').classList.add('hidden');
+        }
+
+        function onYearSelectionChange() {
+            const baseName = document.getElementById('yearDropdown').value;
+            const metricDrop = document.getElementById('metricDropdown');
+            const subjDrop = document.getElementById('subjectDropdown');
+
+            if (!baseName) {
+                resetDropdowns();
+                refreshVisuals();
+                return;
+            }
+
+            metricDrop.disabled = false;
+            subjDrop.disabled = false;
+            subjDrop.innerHTML = '<option value="ALL">-- جميع المقررات --</option>';
+
+            const subjects = Object.keys(database[baseName]);
+            subjects.forEach(subj => {
+                subjDrop.innerHTML += `<option value="${subj}">${subj}</option>`;
+            });
+
+            refreshVisuals();
+        }
+
+        function onMetricSelectionChange() {
+            const selectedMetric = document.getElementById('metricDropdown').value;
+            const allGradesYearGroup = document.getElementById('allGradesYearGroup');
+            const countsToggleWrapper = document.getElementById('countsToggleWrapper');
+
+            if (selectedMetric === 'ALL_GRADES') {
+                allGradesYearGroup.classList.remove('hidden');
+                countsToggleWrapper.style.display = 'none';
+            } else if (selectedMetric === 'PASS_RATE') {
+                allGradesYearGroup.classList.add('hidden');
+                countsToggleWrapper.style.display = 'flex';
+            } else {
+                allGradesYearGroup.classList.add('hidden');
+                countsToggleWrapper.style.display = 'none';
+            }
+
+            refreshVisuals();
+        }
+
+        function getFormattedValue(yearData, metric, isPercentage, useAttendantsBase) {
+            if (!yearData) return { numeric: 0, text: '-' };
+
+            if (metric === 'PASS_RATE') {
+                const rate = yearData['PASS_RATE'];
+                if (rate === undefined) return { numeric: 0, text: '-' };
+                if (isPercentage) {
+                    let pct = parseFloat((rate * 100).toFixed(2));
+                    return { numeric: pct, text: pct + '%' };
+                } else {
+                    let dec = parseFloat(rate.toFixed(4));
+                    return { numeric: dec, text: dec };
+                }
+            } else {
+                const count = yearData[metric];
+                if (count === undefined) return { numeric: 0, text: '-' };
+
+                if (isPercentage) {
+                    if (useAttendantsBase) {
+                        let attSum = 0;
+                        ATTENDANT_KEYS.forEach(k => {
+                            if (yearData[k] !== undefined) attSum += yearData[k];
+                        });
+
+                        if (ATTENDANT_KEYS.includes(metric)) {
+                            if (attSum > 0) {
+                                let pct = parseFloat(((count / attSum) * 100).toFixed(2));
+                                return { numeric: pct, text: pct + '%' };
+                            } else {
+                                return { numeric: 0, text: '0%' };
+                            }
+                        } else {
+                            return { numeric: 0, text: '0%' };
+                        }
+                    } else {
+                        let regSum = 0;
+                        GRADE_KEYS.forEach(k => {
+                            if (yearData[k] !== undefined) regSum += yearData[k];
+                        });
+
+                        if (regSum <= 0) regSum = yearData['TOTAL_STUDENTS'] || 0;
+
+                        if (regSum > 0) {
+                            let pct = parseFloat(((count / regSum) * 100).toFixed(2));
+                            return { numeric: pct, text: pct + '%' };
+                        } else {
+                            return { numeric: 0, text: '0%' };
+                        }
+                    }
+                } else {
+                    return { numeric: count, text: count };
+                }
+            }
+        }
+
+        function refreshVisuals() {
+            const baseName = document.getElementById('yearDropdown').value;
+            const selectedMetric = document.getElementById('metricDropdown').value;
+            const selectedSubject = document.getElementById('subjectDropdown').value;
+            const mainContent = document.getElementById('dashboardMain');
+
+            const isPercentage = document.getElementById('formatToggle').checked;
+            const denomToggleWrapper = document.getElementById('denomToggleWrapper');
+            const denomToggle = document.getElementById('denomToggle');
+            const denomLabelText = document.getElementById('denomLabelText');
+            const countsToggleWrapper = document.getElementById('countsToggleWrapper');
+
+            if (!baseName) {
+                mainContent.classList.add('hidden');
+                return;
+            }
+
+            if (selectedMetric === 'PASS_RATE') {
+                countsToggleWrapper.style.display = 'flex';
+            } else {
+                countsToggleWrapper.style.display = 'none';
+            }
+
+            if (isPercentage) {
+                denomToggleWrapper.style.display = 'flex';
+                if (denomToggle.checked) {
+                    denomLabelText.innerText = 'الحاضرين (ض جـ إلى م) [100%]';
+                } else {
+                    denomLabelText.innerText = 'المسجلين (شامل غب، غ، ح، رت) [100%]';
+                }
+            } else {
+                denomToggleWrapper.style.display = 'none';
+            }
+
+            mainContent.classList.remove('hidden');
+
+            const deptData = database[baseName];
+            let subjectsToRender = Object.keys(deptData);
+
+            if (selectedSubject && selectedSubject !== 'ALL') {
+                subjectsToRender = [selectedSubject];
+            }
+
+            const metricLabel = document.getElementById('metricDropdown').options[document.getElementById('metricDropdown').selectedIndex].text;
+            document.getElementById('tableCardTitle').innerText = `جدول مقارنة المقررات حسب (${metricLabel})`;
+            document.getElementById('chartCardTitle').innerText = `المخطط البياني للمقارنة حسب (${metricLabel})`;
+
+            renderMatrixTable(deptData, subjectsToRender, selectedMetric);
+            renderChart(deptData, subjectsToRender, selectedMetric);
+        }
+
+        function renderMatrixTable(deptData, subjects, metric) {
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tableBody');
+            const isPercentage = document.getElementById('formatToggle').checked;
+            const useAttendantsBase = document.getElementById('denomToggle').checked;
+            const showCounts = document.getElementById('showCountsToggle').checked && (metric === 'PASS_RATE');
+            
+            tbody.innerHTML = '';
+
+            if (metric === 'ALL_GRADES') {
+                let headerRowHTML = `<tr><th>اسم المقرر</th>`;
+                GRADE_KEYS.forEach(gk => { headerRowHTML += `<th>${gk}</th>`; });
+                headerRowHTML += `</tr>`;
+                thead.innerHTML = headerRowHTML;
+
+                const selectedYear = document.getElementById('allGradesYearSelect').value;
+
+                subjects.forEach(subj => {
+                    const tr = document.createElement('tr');
+                    let rowHTML = `<td>${subj}</td>`;
+                    const yearData = deptData[subj] ? deptData[subj][selectedYear] : null;
+
+                    GRADE_KEYS.forEach(gk => {
+                        const valObj = getFormattedValue(yearData, gk, isPercentage, useAttendantsBase);
+                        rowHTML += `<td>${valObj.text}</td>`;
+                    });
+
+                    tr.innerHTML = rowHTML;
+                    tbody.appendChild(tr);
+                });
+            } else if (metric === 'PASS_RATE' && showCounts) {
+                thead.innerHTML = `
+                    <tr>
+                        <th rowspan="2" style="vertical-align: middle;">اسم المقرر</th>
+                        <th colspan="3" class="year-group">2024</th>
+                        <th colspan="3" class="year-group">2025</th>
+                        <th colspan="3" class="year-group">2026</th>
+                    </tr>
+                    <tr>
+                        <th>مقيد</th><th>حاضر</th><th>النسبة</th>
+                        <th>مقيد</th><th>حاضر</th><th>النسبة</th>
+                        <th>مقيد</th><th>حاضر</th><th>النسبة</th>
+                    </tr>
+                `;
+
+                subjects.forEach(subj => {
+                    const tr = document.createElement('tr');
+                    let rowHTML = `<td>${subj}</td>`;
+
+                    coreYears.forEach(year => {
+                        const yearData = deptData[subj] ? deptData[subj][year] : null;
+                        const reg = yearData ? (yearData['TOTAL_STUDENTS'] ?? '-') : '-';
+                        const att = yearData ? (yearData['ATTENDANTS_COUNT'] ?? '-') : '-';
+                        const valObj = getFormattedValue(yearData, metric, isPercentage, useAttendantsBase);
+
+                        rowHTML += `<td>${reg}</td><td>${att}</td><td><b>${valObj.text}</b></td>`;
+                    });
+
+                    tr.innerHTML = rowHTML;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                thead.innerHTML = `<tr>
+                    <th>اسم المقرر</th>
+                    <th>2024</th>
+                    <th>2025</th>
+                    <th>2026</th>
+                </tr>`;
+
+                subjects.forEach(subj => {
+                    const tr = document.createElement('tr');
+                    let rowHTML = `<td>${subj}</td>`;
+
+                    coreYears.forEach(year => {
+                        const yearData = deptData[subj] ? deptData[subj][year] : null;
+                        const valObj = getFormattedValue(yearData, metric, isPercentage, useAttendantsBase);
+                        rowHTML += `<td>${valObj.text}</td>`;
+                    });
+
+                    tr.innerHTML = rowHTML;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function renderChart(deptData, subjects, metric) {
             const ctx = document.getElementById('comparisonChart').getContext('2d');
             const isPercentage = document.getElementById('formatToggle').checked;
             const useAttendantsBase = document.getElementById('denomToggle').checked;
@@ -34,7 +938,6 @@ function renderChart(deptData, subjects, metric) {
                     };
                 });
             } else if (metric === 'PASS_RATE' && showCounts) {
-                // ألوان مميزة لكل عام ومؤشر لضمان وضوح الأعمدة المتجاورة
                 const yearStyleMap = {
                     '2024': { reg: '#94a3b8', att: '#64748b', rate: '#1d6385' },
                     '2025': { reg: '#fdba74', att: '#fb923c', rate: '#ea652d' },
@@ -61,7 +964,6 @@ function renderChart(deptData, subjects, metric) {
                         rateData.push(valObj.numeric);
                     });
 
-                    // 1. عمود المقيدين (Col D) - عمود مستقل متجاور
                     datasets.push({
                         label: `${year} - مقيد`,
                         data: regData,
@@ -73,7 +975,6 @@ function renderChart(deptData, subjects, metric) {
                         categoryPercentage: 0.85
                     });
 
-                    // 2. عمود الحاضرين (Col E) - عمود مستقل متجاور
                     datasets.push({
                         label: `${year} - حاضر`,
                         data: attData,
@@ -85,7 +986,6 @@ function renderChart(deptData, subjects, metric) {
                         categoryPercentage: 0.85
                     });
 
-                    // 3. عمود نسبة النجاح (Col S) - عمود مستقل متجاور
                     datasets.push({
                         label: `${year} - نسبة %`,
                         data: rateData,
@@ -124,7 +1024,7 @@ function renderChart(deptData, subjects, metric) {
             if (metric === 'PASS_RATE' && showCounts) {
                 scalesConfig = {
                     x: {
-                        grouped: true, // فرض التجاوز الأفقي ومنع التراكب
+                        grouped: true,
                         grid: { display: false },
                         ticks: { font: { size: 12, weight: '700' }, maxRotation: 45, minRotation: 0 }
                     },
@@ -213,3 +1113,59 @@ function renderChart(deptData, subjects, metric) {
                 }
             });
         }
+
+        function copyTable() {
+            const table = document.getElementById('comparisonTable');
+            const range = document.createRange();
+            range.selectNode(table);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                alert('✅ تم نسخ محتوى الجدول بنجاح!');
+            } catch (err) {
+                alert('❌ فشل نسخ الجدول.');
+            }
+            window.getSelection().removeAllRanges();
+        }
+
+        async function copyChart() {
+            const canvas = document.getElementById('comparisonChart');
+            try {
+                canvas.toBlob(async function(blob) {
+                    if (blob) {
+                        const item = new ClipboardItem({ "image/png": blob });
+                        await navigator.clipboard.write([item]);
+                        alert('✅ تم نسخ صورة المخطط بنجاح!');
+                    }
+                });
+            } catch (err) {
+                alert('❌ فشل نسخ المخطط. تأكد من أن المتصفح يدعم نسخ الصور.');
+            }
+        }
+
+        function adjustZoom(delta) {
+            currentZoom += delta;
+            document.body.style.zoom = currentZoom;
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function toggleInterfaceElements() {
+            document.getElementById('appHeader').classList.toggle('hidden');
+            document.getElementById('appFooter').classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
