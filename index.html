@@ -26,7 +26,6 @@
             overflow-x: hidden;
         }
 
-        /* Glassmorphism Header */
         header {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(10px);
@@ -51,7 +50,6 @@
             align-items: center;
         }
 
-        /* Standard Buttons */
         .btn {
             background: linear-gradient(135deg, #0284c7, #0d9488);
             color: white;
@@ -73,7 +71,6 @@
             box-shadow: 0 6px 12px rgba(0,0,0,0.15);
         }
 
-        /* Animated Blue-Green Gradient for Action Buttons */
         .btn-action {
             background: linear-gradient(270deg, #0284c7, #10b981, #0ea5e9, #14b8a6);
             background-size: 300% 300%;
@@ -86,7 +83,6 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* Floating Toggle Button (Bottom Right) */
         .floating-toggle {
             position: fixed;
             bottom: 45px;
@@ -111,7 +107,6 @@
             transform: scale(1.15);
         }
 
-        /* Glassmorphism Panel */
         .panel {
             background: rgba(255, 255, 255, 0.95);
             margin: 20px;
@@ -131,7 +126,6 @@
             color: #0284c7;
         }
 
-        /* Control Grid */
         .control-grid {
             display: flex;
             flex-wrap: wrap;
@@ -175,7 +169,6 @@
             color: #94a3b8;
         }
 
-        /* Custom Toggle Switch */
         .toggle-container {
             display: flex;
             align-items: center;
@@ -211,7 +204,7 @@
             position: absolute;
             cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #0284c7;
+            background-color: #cbd5e1;
             transition: .4s;
             border-radius: 34px;
         }
@@ -236,7 +229,6 @@
             transform: translateX(22px);
         }
 
-        /* Dashboard Content Area */
         .main-content {
             padding: 0 20px 60px 20px;
             display: flex;
@@ -268,7 +260,6 @@
             color: #0369a1;
         }
 
-        /* Table Styling */
         .table-wrapper {
             overflow-x: auto;
         }
@@ -276,13 +267,13 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 15px;
+            font-size: 14px;
             text-align: center;
             direction: rtl;
         }
 
         th, td {
-            padding: 10px 12px;
+            padding: 8px 10px;
             border: 1px solid #cbd5e1;
         }
 
@@ -290,6 +281,12 @@
             background: #f1f5f9;
             color: #0f172a;
             font-weight: 700;
+            font-size: 15px;
+        }
+
+        th.year-group {
+            background: #e0f2fe;
+            color: #0369a1;
             font-size: 16px;
         }
 
@@ -307,7 +304,6 @@
             background: #fdfdfd;
         }
 
-        /* Chart Styling */
         .chart-container {
             position: relative;
             height: 520px;
@@ -317,7 +313,6 @@
             padding: 10px;
         }
 
-        /* Animated Footer */
         footer {
             margin-top: auto;
             height: 40px;
@@ -345,7 +340,6 @@
 </head>
 <body>
 
-    <!-- Header Navigation -->
     <header id="appHeader">
         <h1>📊 لوحة مقارنة النتائج والتقديرات التفاعلية</h1>
         <div class="controls-top">
@@ -355,7 +349,6 @@
         </div>
     </header>
 
-    <!-- Hosting & Dropdown Panel -->
     <div class="panel" id="controlPanel">
         <div class="status-box" id="loadStatus">
             ⏳ جاري تحميل البيانات من الخادم... يرجى الانتظار.
@@ -391,6 +384,15 @@
                 </select>
             </div>
 
+            <!-- New Switch: Show Registered (Col D) and Attendants (Col E) -->
+            <div class="toggle-container" id="countsToggleWrapper">
+                <span class="toggle-label">👥 إظهار المقيدين (D) والحاضرين (E):</span>
+                <label class="switch">
+                    <input type="checkbox" id="showCountsToggle" onchange="refreshVisuals()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
             <!-- 2.1 Year Selection for ALL_GRADES Mode -->
             <div class="filter-group hidden" id="allGradesYearGroup">
                 <label for="allGradesYearSelect">السنة الدراسية:</label>
@@ -409,7 +411,7 @@
                 </select>
             </div>
             
-            <!-- Global Universal Switch Button for Table & Chart Display Mode -->
+            <!-- Numbers vs Percentages Toggle -->
             <div class="toggle-container" id="formatToggleWrapper">
                 <span class="toggle-label">أرقام / عشري</span>
                 <label class="switch">
@@ -419,7 +421,7 @@
                 <span class="toggle-label">نسب مئوية (%)</span>
             </div>
 
-            <!-- Sub-Switch for Percentage Calculation Base (Attendants vs Registered) -->
+            <!-- Percentage Calculation Base -->
             <div class="toggle-container" id="denomToggleWrapper">
                 <span class="toggle-label">أساس النسبة:</span>
                 <label class="switch">
@@ -431,10 +433,7 @@
         </div>
     </div>
 
-    <!-- Hidden until a file is selected -->
     <main class="main-content hidden" id="dashboardMain">
-        
-        <!-- Table Representation -->
         <div class="card">
             <div class="card-header">
                 <div class="card-title" id="tableCardTitle">جدول مقارنة نتائج المقررات</div>
@@ -442,20 +441,12 @@
             </div>
             <div class="table-wrapper">
                 <table id="comparisonTable">
-                    <thead id="tableHead">
-                        <tr>
-                            <th>اسم المقرر</th>
-                            <th>2024</th>
-                            <th>2025</th>
-                            <th>2026</th>
-                        </tr>
-                    </thead>
+                    <thead id="tableHead"></thead>
                     <tbody id="tableBody"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Grouped Bar Chart Representation -->
         <div class="card">
             <div class="card-header">
                 <div class="card-title" id="chartCardTitle">المخطط البياني للمقارنة</div>
@@ -465,83 +456,40 @@
                 <canvas id="comparisonChart"></canvas>
             </div>
         </div>
-
     </main>
 
-    <!-- UI Visibility Floating Toggle (Pinned Bottom Right) -->
     <button class="floating-toggle" onclick="toggleInterfaceElements()" title="إظهار / إخفاء القوائم">👁️</button>
 
-    <!-- Animated Footer -->
     <footer id="appFooter">
-        All rights are reserved to Dr. Mazen Badawy – Doctor of English Teaching & Testing
+        لوحة التحليل الذكي لمقارنة نتائج المقررات والتقديرات
     </footer>
 
     <script>
-        // ==========================================
-        // DYNAMIC SEPARATED FILES LIST FOR EACH YEAR
-        // ==========================================
         const HOSTED_FILES = [
-            "الاعدادية 2024.xlsx",
-            "الاعدادية 2025.xlsx",
-            "الاعدادية 2026.xlsx",
-            "الأولي -الهندسة الكهربية 2024.xlsx",
-            "الأولي -الهندسة الكهربية 2025.xlsx",
-            "الأولي -الهندسة الكهربية 2026.xlsx",
-            "الأولي -الهندسة المدنية 2024.xlsx",
-            "الأولي -الهندسة المدنية 2025.xlsx",
-            "الأولي -الهندسة المدنية 2026.xlsx",
-            "الأولي -الهندسة المعمارية 2024.xlsx",
-            "الأولي -الهندسة المعمارية 2025.xlsx",
-            "الأولي -الهندسة المعمارية 2026.xlsx",
-            "الثالثة-الهندسة  الألكترونيات والإتصالات 2024.xlsx",
-            "الثالثة-الهندسة  الألكترونيات والإتصالات 2025.xlsx",
-            "الثالثة-الهندسة  الألكترونيات والإتصالات 2026.xlsx",
-            "الثالثة-الهندسة الحاسبات والتحكم 2024.xlsx",
-            "الثالثة-الهندسة الحاسبات والتحكم 2025.xlsx",
-            "الثالثة-الهندسة الحاسبات والتحكم 2026.xlsx",
-            "الثالثة-الهندسة المدنية 2024.xlsx",
-            "الثالثة-الهندسة المدنية 2025.xlsx",
-            "الثالثة-الهندسة المدنية 2026.xlsx",
-            "الثالثة-الهندسة المعمارية 2024.xlsx",
-            "الثالثة-الهندسة المعمارية 2025.xlsx",
-            "الثالثة-الهندسة المعمارية 2026.xlsx",
-            "الثانية -الهندسة الكهربية 2024.xlsx",
-            "الثانية -الهندسة الكهربية 2026.xlsx",
-            "الثانية -الهندسة المعمارية 2024.xlsx",
-            "الثانية -الهندسة المعمارية 2025.xlsx",
-            "الثانية -الهندسة المعمارية 2026.xlsx",
-            "الثانية-الهندسة المدنية 2024.xlsx",
-            "الثانية-الهندسة المدنية 2025.xlsx",
-            "الثانية-الهندسة المدنية 2026.xlsx",
-            "الرابعة -الهندسة الحاسبات والتحكم 2024.xlsx",
-            "الرابعة -الهندسة الحاسبات والتحكم 2025.xlsx",
-            "الرابعة -الهندسة الحاسبات والتحكم 2026.xlsx",
-            "الرابعة-الهندسة  الألكترونيات والإتصالات 2024.xlsx",
-            "الرابعة-الهندسة  الألكترونيات والإتصالات 2025.xlsx",
-            "الرابعة-الهندسة  الألكترونيات والإتصالات 2026.xlsx",
-            "الرابعة-الهندسة المدنية 2024.xlsx",
-            "الرابعة-الهندسة المدنية 2025.xlsx",
-            "الرابعة-الهندسة المدنية 2026.xlsx",
-            "الرابعة-الهندسة المعمارية 2024.xlsx",
-            "الرابعة-الهندسة المعمارية 2025.xlsx",
-            "الرابعة-الهندسة المعمارية 2026.xlsx"
+            "الاعدادية 2024.xlsx", "الاعدادية 2025.xlsx", "الاعدادية 2026.xlsx",
+            "الأولي -الهندسة الكهربية 2024.xlsx", "الأولي -الهندسة الكهربية 2025.xlsx", "الأولي -الهندسة الكهربية 2026.xlsx",
+            "الأولي -الهندسة المدنية 2024.xlsx", "الأولي -الهندسة المدنية 2025.xlsx", "الأولي -الهندسة المدنية 2026.xlsx",
+            "الأولي -الهندسة المعمارية 2024.xlsx", "الأولي -الهندسة المعمارية 2025.xlsx", "الأولي -الهندسة المعمارية 2026.xlsx",
+            "الثالثة-الهندسة  الألكترونيات والإتصالات 2024.xlsx", "الثالثة-الهندسة  الألكترونيات والإتصالات 2025.xlsx", "الثالثة-الهندسة  الألكترونيات والإتصالات 2026.xlsx",
+            "الثالثة-الهندسة الحاسبات والتحكم 2024.xlsx", "الثالثة-الهندسة الحاسبات والتحكم 2025.xlsx", "الثالثة-الهندسة الحاسبات والتحكم 2026.xlsx",
+            "الثالثة-الهندسة المدنية 2024.xlsx", "الثالثة-الهندسة المدنية 2025.xlsx", "الثالثة-الهندسة المدنية 2026.xlsx",
+            "الثالثة-الهندسة المعمارية 2024.xlsx", "الثالثة-الهندسة المعمارية 2025.xlsx", "الثالثة-الهندسة المعمارية 2026.xlsx",
+            "الثانية -الهندسة الكهربية 2024.xlsx", "الثانية -الهندسة الكهربية 2026.xlsx",
+            "الثانية -الهندسة المعمارية 2024.xlsx", "الثانية -الهندسة المعمارية 2025.xlsx", "الثانية -الهندسة المعمارية 2026.xlsx",
+            "الثانية-الهندسة المدنية 2024.xlsx", "الثانية-الهندسة المدنية 2025.xlsx", "الثانية-الهندسة المدنية 2026.xlsx",
+            "الرابعة -الهندسة الحاسبات والتحكم 2024.xlsx", "الرابعة -الهندسة الحاسبات والتحكم 2025.xlsx", "الرابعة -الهندسة الحاسبات والتحكم 2026.xlsx",
+            "الرابعة-الهندسة  الألكترونيات والإتصالات 2024.xlsx", "الرابعة-الهندسة  الألكترونيات والإتصالات 2025.xlsx", "الرابعة-الهندسة  الألكترونيات والإتصالات 2026.xlsx",
+            "الرابعة-الهندسة المدنية 2024.xlsx", "الرابعة-الهندسة المدنية 2025.xlsx", "الرابعة-الهندسة المدنية 2026.xlsx",
+            "الرابعة-الهندسة المعمارية 2024.xlsx", "الرابعة-الهندسة المعمارية 2025.xlsx", "الرابعة-الهندسة المعمارية 2026.xlsx"
         ];
-        // ==========================================
 
         const ATTENDANT_KEYS = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م"];
         const GRADE_KEYS = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م", "غب", "غ", "ح", "رت"];
 
         const gradeColorMap = {
-            'ض جـ': '#1d4ed8', // Dark Blue
-            'ض': '#dc2626',   // Red
-            'ل': '#65a30d',   // Lime Green
-            'جـ': '#7e22ce',  // Purple
-            'جـ جـ': '#0284c7', // Cyan / Sky Blue
-            'م': '#ea580c',   // Orange
-            'غب': '#d97706',  // Amber / Light Brown
-            'غ': '#7f1d1d',   // Dark Maroon
-            'ح': '#4d7c0f',   // Dark Green
-            'رت': '#2563eb'   // Blue
+            'ض جـ': '#1d4ed8', 'ض': '#dc2626', 'ل': '#65a30d', 'جـ': '#7e22ce',
+            'جـ جـ': '#0284c7', 'م': '#ea580c', 'غب': '#d97706', 'غ': '#7f1d1d',
+            'ح': '#4d7c0f', 'رت': '#2563eb'
         };
 
         let database = {}; 
@@ -563,16 +511,11 @@
             
             let detectedYear = null;
             coreYears.forEach(y => {
-                if (cleanName.includes(y)) {
-                    detectedYear = y;
-                }
+                if (cleanName.includes(y)) detectedYear = y;
             });
 
             let baseDept = cleanName;
-            if (detectedYear) {
-                baseDept = cleanName.replace(detectedYear, "");
-            }
-
+            if (detectedYear) baseDept = cleanName.replace(detectedYear, "");
             baseDept = baseDept.replace(/_مجمع/g, "").replace(/\s+/g, " ").trim();
 
             return { base: baseDept, year: detectedYear };
@@ -586,16 +529,11 @@
             const statusBox = document.getElementById('loadStatus');
             database = {}; 
             let successCount = 0;
-            let missingFiles = [];
 
             for (const fileName of HOSTED_FILES) {
                 try {
                     const response = await fetch(`./${encodeURIComponent(fileName)}`);
-                    if (!response.ok) {
-                        missingFiles.push(fileName);
-                        console.warn(`Could not load ${fileName} - HTTP Status: ${response.status}`);
-                        continue; 
-                    }
+                    if (!response.ok) continue;
                     
                     const arrayBuffer = await response.arrayBuffer();
                     const data = new Uint8Array(arrayBuffer);
@@ -604,7 +542,6 @@
                     const parsed = parseFileName(fileName);
                     const baseName = parsed.base;
                     const year = parsed.year;
-
                     if (!baseName || !year) continue;
 
                     if (!database[baseName]) database[baseName] = {};
@@ -614,15 +551,13 @@
 
                     const sheet = workbook.Sheets[firstSheetName];
                     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
                     if (jsonData.length === 0) continue;
 
                     const headerRow = jsonData[0] || [];
-                    let subjectColIndex = 2; // Default C
-                    let totalStudentsColIndex = 3; // Default D
-                    
-                    // STRICT: Column S (Index 18) for Pass Rate
-                    let passRateColIndex = 18; 
+                    let subjectColIndex = 2;       // Col C
+                    let registeredColIndex = 3;    // Col D (المقيدين)
+                    let attendantsColIndex = 4;    // Col E (الحاضرين)
+                    let passRateColIndex = 18;     // Col S (نسبة النجاح)
                     let gradeColMap = {};
 
                     headerRow.forEach((cell, colIdx) => {
@@ -632,18 +567,18 @@
                         if (cellTxt.includes("اسم المقرر") || cellTxt === "المقرر") {
                             subjectColIndex = colIdx;
                         }
-                        if (cellTxt.includes("الطلاب") || cellTxt.includes("الحاضرين")) {
-                            totalStudentsColIndex = colIdx;
+                        if (cellTxt.includes("المقيد") || cellTxt.includes("المقيدين") || cellTxt.includes("الطلاب")) {
+                            registeredColIndex = colIdx;
                         }
-                        
+                        if (cellTxt.includes("الحاضر") || cellTxt.includes("الحاضرين")) {
+                            attendantsColIndex = colIdx;
+                        }
                         if (colIdx === 18 && (cellTxt.includes("نسبة النجاح") || cellTxt.includes("نسبه النجاح"))) {
                             passRateColIndex = 18;
                         }
 
                         GRADE_KEYS.forEach(gk => {
-                            if (cellTxt === gk) {
-                                gradeColMap[gk] = colIdx;
-                            }
+                            if (cellTxt === gk) gradeColMap[gk] = colIdx;
                         });
                     });
 
@@ -654,17 +589,17 @@
                         if (!subjectName) return;
                         const subjStr = String(subjectName).trim();
 
-                        if (!database[baseName][subjStr]) {
-                            database[baseName][subjStr] = {};
-                        }
-                        if (!database[baseName][subjStr][year]) {
-                            database[baseName][subjStr][year] = {};
-                        }
+                        if (!database[baseName][subjStr]) database[baseName][subjStr] = {};
+                        if (!database[baseName][subjStr][year]) database[baseName][subjStr][year] = {};
 
-                        let totalCount = parseInt(row[totalStudentsColIndex], 10);
-                        database[baseName][subjStr][year]['TOTAL_STUDENTS'] = (!isNaN(totalCount) && totalCount > 0) ? totalCount : 0;
+                        // Read Registered (Col D) and Attendants (Col E)
+                        let regVal = parseInt(row[registeredColIndex], 10);
+                        let attVal = parseInt(row[attendantsColIndex], 10);
 
-                        // Read Pass Rate strictly from Column S
+                        database[baseName][subjStr][year]['TOTAL_STUDENTS'] = (!isNaN(regVal) && regVal >= 0) ? regVal : 0;
+                        database[baseName][subjStr][year]['ATTENDANTS_COUNT'] = (!isNaN(attVal) && attVal >= 0) ? attVal : 0;
+
+                        // Pass Rate from Column S
                         const passRate = row[passRateColIndex];
                         if (passRate !== undefined && passRate !== null) {
                             let numericRate = parseFloat(String(passRate).replace('%', '').trim());
@@ -674,7 +609,7 @@
                             }
                         }
 
-                        // Read Detailed Grades
+                        // Detailed Grades
                         GRADE_KEYS.forEach(gk => {
                             const colIdx = gradeColMap[gk];
                             if (colIdx !== undefined && row[colIdx] !== undefined && row[colIdx] !== null) {
@@ -688,7 +623,6 @@
 
                     successCount++;
                 } catch (error) {
-                    missingFiles.push(fileName);
                     console.error(`Error processing ${fileName}:`, error);
                 }
             }
@@ -698,7 +632,7 @@
                 document.getElementById('filterSection').classList.remove('hidden');
                 populateYearDropdown();
             } else {
-                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس مسار صفحة HTML على GitHub وتطابق أسمائها بالكامل.";
+                statusBox.innerHTML = "❌ حدث خطأ: لم يتم العثور على أي ملفات. تأكد من رفعها إلى نفس مسار صفحة HTML وتطابق أسمائها بالكامل.";
                 statusBox.style.borderColor = "#ef4444";
                 statusBox.style.color = "#ef4444";
             }
@@ -720,9 +654,7 @@
             const sortedDepts = Object.keys(database).sort((a, b) => {
                 const rankA = getAcademicRank(a);
                 const rankB = getAcademicRank(b);
-                if (rankA !== rankB) {
-                    return rankA - rankB;
-                }
+                if (rankA !== rankB) return rankA - rankB;
                 return a.localeCompare(b, 'ar');
             });
 
@@ -766,17 +698,22 @@
         function onMetricSelectionChange() {
             const selectedMetric = document.getElementById('metricDropdown').value;
             const allGradesYearGroup = document.getElementById('allGradesYearGroup');
+            const countsToggleWrapper = document.getElementById('countsToggleWrapper');
 
             if (selectedMetric === 'ALL_GRADES') {
                 allGradesYearGroup.classList.remove('hidden');
+                countsToggleWrapper.style.display = 'none';
+            } else if (selectedMetric === 'PASS_RATE') {
+                allGradesYearGroup.classList.add('hidden');
+                countsToggleWrapper.style.display = 'flex';
             } else {
                 allGradesYearGroup.classList.add('hidden');
+                countsToggleWrapper.style.display = 'none';
             }
 
             refreshVisuals();
         }
 
-        // Calculate Formatted Value according to Metric, Percentage Toggle, and Base Denominator
         function getFormattedValue(yearData, metric, isPercentage, useAttendantsBase) {
             if (!yearData) return { numeric: 0, text: '-' };
 
@@ -796,7 +733,6 @@
 
                 if (isPercentage) {
                     if (useAttendantsBase) {
-                        // MODE 1: Attendants Mode (Denominator = Sum of Attendants ONLY)
                         let attSum = 0;
                         ATTENDANT_KEYS.forEach(k => {
                             if (yearData[k] !== undefined) attSum += yearData[k];
@@ -810,19 +746,15 @@
                                 return { numeric: 0, text: '0%' };
                             }
                         } else {
-                            // Non-attendants (غب - غ - ح - رت) set to 0% so total sum equals 100% exactly
                             return { numeric: 0, text: '0%' };
                         }
                     } else {
-                        // MODE 2: Registered Mode (Denominator = Sum of ALL 10 Grades or TOTAL_STUDENTS)
                         let regSum = 0;
                         GRADE_KEYS.forEach(k => {
                             if (yearData[k] !== undefined) regSum += yearData[k];
                         });
 
-                        if (regSum <= 0) {
-                            regSum = yearData['TOTAL_STUDENTS'] || 0;
-                        }
+                        if (regSum <= 0) regSum = yearData['TOTAL_STUDENTS'] || 0;
 
                         if (regSum > 0) {
                             let pct = parseFloat(((count / regSum) * 100).toFixed(2));
@@ -847,13 +779,19 @@
             const denomToggleWrapper = document.getElementById('denomToggleWrapper');
             const denomToggle = document.getElementById('denomToggle');
             const denomLabelText = document.getElementById('denomLabelText');
+            const countsToggleWrapper = document.getElementById('countsToggleWrapper');
 
             if (!baseName) {
                 mainContent.classList.add('hidden');
                 return;
             }
 
-            // Show base switch only when Percentages mode is active
+            if (selectedMetric === 'PASS_RATE') {
+                countsToggleWrapper.style.display = 'flex';
+            } else {
+                countsToggleWrapper.style.display = 'none';
+            }
+
             if (isPercentage) {
                 denomToggleWrapper.style.display = 'flex';
                 if (denomToggle.checked) {
@@ -887,14 +825,13 @@
             const tbody = document.getElementById('tableBody');
             const isPercentage = document.getElementById('formatToggle').checked;
             const useAttendantsBase = document.getElementById('denomToggle').checked;
+            const showCounts = document.getElementById('showCountsToggle').checked && (metric === 'PASS_RATE');
             
             tbody.innerHTML = '';
 
             if (metric === 'ALL_GRADES') {
                 let headerRowHTML = `<tr><th>اسم المقرر</th>`;
-                GRADE_KEYS.forEach(gk => {
-                    headerRowHTML += `<th>${gk}</th>`;
-                });
+                GRADE_KEYS.forEach(gk => { headerRowHTML += `<th>${gk}</th>`; });
                 headerRowHTML += `</tr>`;
                 thead.innerHTML = headerRowHTML;
 
@@ -908,6 +845,38 @@
                     GRADE_KEYS.forEach(gk => {
                         const valObj = getFormattedValue(yearData, gk, isPercentage, useAttendantsBase);
                         rowHTML += `<td>${valObj.text}</td>`;
+                    });
+
+                    tr.innerHTML = rowHTML;
+                    tbody.appendChild(tr);
+                });
+            } else if (metric === 'PASS_RATE' && showCounts) {
+                // Multi-tier header when showing Registered & Attendants
+                thead.innerHTML = `
+                    <tr>
+                        <th rowspan="2" style="vertical-align: middle;">اسم المقرر</th>
+                        <th colspan="3" class="year-group">2024</th>
+                        <th colspan="3" class="year-group">2025</th>
+                        <th colspan="3" class="year-group">2026</th>
+                    </tr>
+                    <tr>
+                        <th>مقيد</th><th>حاضر</th><th>النسبة</th>
+                        <th>مقيد</th><th>حاضر</th><th>النسبة</th>
+                        <th>مقيد</th><th>حاضر</th><th>النسبة</th>
+                    </tr>
+                `;
+
+                subjects.forEach(subj => {
+                    const tr = document.createElement('tr');
+                    let rowHTML = `<td>${subj}</td>`;
+
+                    coreYears.forEach(year => {
+                        const yearData = deptData[subj] ? deptData[subj][year] : null;
+                        const reg = yearData ? (yearData['TOTAL_STUDENTS'] ?? '-') : '-';
+                        const att = yearData ? (yearData['ATTENDANTS_COUNT'] ?? '-') : '-';
+                        const valObj = getFormattedValue(yearData, metric, isPercentage, useAttendantsBase);
+
+                        rowHTML += `<td>${reg}</td><td>${att}</td><td><b>${valObj.text}</b></td>`;
                     });
 
                     tr.innerHTML = rowHTML;
@@ -941,12 +910,14 @@
             const ctx = document.getElementById('comparisonChart').getContext('2d');
             const isPercentage = document.getElementById('formatToggle').checked;
             const useAttendantsBase = document.getElementById('denomToggle').checked;
+            const showCounts = document.getElementById('showCountsToggle').checked && (metric === 'PASS_RATE');
 
             if (chartInstance) {
                 chartInstance.destroy();
             }
 
             let maxValFound = 0;
+            let maxCountFound = 0;
             let datasets = [];
 
             if (metric === 'ALL_GRADES') {
@@ -970,6 +941,60 @@
                         categoryPercentage: 0.75
                     };
                 });
+            } else if (metric === 'PASS_RATE' && showCounts) {
+                // Grouped Bars for Registered, Attendants, and Pass Rate per year
+                coreYears.forEach(year => {
+                    const regData = [];
+                    const attData = [];
+                    const rateData = [];
+
+                    subjects.forEach(subj => {
+                        const yearData = deptData[subj] ? deptData[subj][year] : null;
+                        const reg = yearData ? (yearData['TOTAL_STUDENTS'] || 0) : 0;
+                        const att = yearData ? (yearData['ATTENDANTS_COUNT'] || 0) : 0;
+                        const valObj = getFormattedValue(yearData, 'PASS_RATE', isPercentage, useAttendantsBase);
+
+                        if (reg > maxCountFound) maxCountFound = reg;
+                        if (att > maxCountFound) maxCountFound = att;
+                        if (valObj.numeric > maxValFound) maxValFound = valObj.numeric;
+
+                        regData.push(reg);
+                        attData.push(att);
+                        rateData.push(valObj.numeric);
+                    });
+
+                    // Col D (Registered)
+                    datasets.push({
+                        label: `${year} - مقيد (D)`,
+                        data: regData,
+                        backgroundColor: '#64748b',
+                        borderColor: '#475569',
+                        borderWidth: 1,
+                        yAxisID: 'yCounts',
+                        stack: `${year}_counts`
+                    });
+
+                    // Col E (Attendants)
+                    datasets.push({
+                        label: `${year} - حاضر (E)`,
+                        data: attData,
+                        backgroundColor: '#38bdf8',
+                        borderColor: '#0284c7',
+                        borderWidth: 1,
+                        yAxisID: 'yCounts',
+                        stack: `${year}_counts`
+                    });
+
+                    // Col S (Pass Rate)
+                    datasets.push({
+                        label: `${year} - نسبة النجاح`,
+                        data: rateData,
+                        backgroundColor: yearColorMap[year],
+                        borderColor: yearColorMap[year],
+                        borderWidth: 1,
+                        yAxisID: 'yRate'
+                    });
+                });
             } else {
                 datasets = coreYears.map(year => {
                     const dataValues = subjects.map(subj => {
@@ -992,15 +1017,55 @@
                 });
             }
 
-            let yMax = 100;
-            if (isPercentage) {
-                yMax = maxValFound > 0 ? Math.ceil(maxValFound * 1.15) : 100;
+            let scalesConfig = {};
+
+            if (metric === 'PASS_RATE' && showCounts) {
+                scalesConfig = {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 13, weight: '700' }, maxRotation: 45, minRotation: 0 }
+                    },
+                    yCounts: {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        max: Math.ceil(maxCountFound * 1.25) || 50,
+                        title: { display: true, text: 'أعداد الطلاب (مقيد / حاضر)', font: { weight: 'bold' } },
+                        grid: { color: '#e2e8f0' }
+                    },
+                    yRate: {
+                        type: 'linear',
+                        position: 'left',
+                        beginAtZero: true,
+                        max: isPercentage ? 115 : 1.15,
+                        title: { display: true, text: isPercentage ? 'نسبة النجاح (%)' : 'نسبة النجاح (عشري)', font: { weight: 'bold' } },
+                        grid: { display: false }
+                    }
+                };
             } else {
-                if (metric === 'PASS_RATE') {
-                    yMax = 1.15;
+                let yMax = 100;
+                if (isPercentage) {
+                    yMax = maxValFound > 0 ? Math.ceil(maxValFound * 1.15) : 100;
                 } else {
-                    yMax = maxValFound > 0 ? Math.ceil(maxValFound * 1.2) : 10;
+                    if (metric === 'PASS_RATE') {
+                        yMax = 1.15;
+                    } else {
+                        yMax = maxValFound > 0 ? Math.ceil(maxValFound * 1.2) : 10;
+                    }
                 }
+
+                scalesConfig = {
+                    y: {
+                        beginAtZero: true,
+                        max: yMax,
+                        grid: { color: '#e2e8f0' },
+                        ticks: { display: false }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 13, weight: '700' }, maxRotation: 45, minRotation: 0 }
+                    }
+                };
             }
 
             chartInstance = new Chart(ctx, {
@@ -1013,42 +1078,27 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: {
-                        padding: {
-                            top: 35,
-                            bottom: 10
-                        }
+                        padding: { top: 35, bottom: 10 }
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: yMax,
-                            grid: { color: '#e2e8f0' },
-                            ticks: { display: false }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { 
-                                font: { size: 13, weight: '700' },
-                                maxRotation: 45,
-                                minRotation: 0
-                            }
-                        }
-                    },
+                    scales: scalesConfig,
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: { font: { size: 14, weight: 'bold' }, usePointStyle: false }
+                            labels: { font: { size: 13, weight: 'bold' } }
                         },
                         datalabels: {
                             anchor: 'end',
                             align: 'top',
                             offset: 2,
                             textAlign: 'center',
-                            font: { weight: 'bold', size: 11 },
-                            formatter: (value) => {
-                                if (value === 0) return '';
+                            font: { weight: 'bold', size: 10 },
+                            formatter: (value, context) => {
+                                if (!value || value === 0) return '';
+                                if (showCounts && context.dataset.yAxisID === 'yCounts') {
+                                    return value;
+                                }
                                 if (isPercentage) {
-                                    return value.toFixed(2) + '%';
+                                    return value.toFixed(1) + '%';
                                 } else {
                                     return value;
                                 }
