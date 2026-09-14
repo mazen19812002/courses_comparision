@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -810,28 +811,24 @@
             renderChart(deptData, subjectsToRender, selectedMetric);
         }
 
-        // حساب إجمالي المقيدين والحاضرين الحقيقي لكل مقرر وسنة
+       // حساب إجمالي المقيدين والحاضرين الحقيقي لكل مقرر وسنة بالاعتماد كلياً على جمع التقديرات
         function getCalculatedCounts(yearData) {
             if (!yearData) return { registered: 0, attendants: 0 };
             
-            // 1. حساب أعداد المقيدين (شامل كل الأعداد بالحرمان والحاضرين والغياب والغياب بعذر والراسبين تحريري)
-            let calculatedReg = yearData['TOTAL_STUDENTS'] || 0;
+            // 1. حساب أعداد المقيدين بجمع كافة التقديرات والحالات (شامل كل الأعداد بالحرمان والغياب والغياب بعذر والراسبين تحريري)
             let sumAllGrades = 0;
             GRADE_KEYS.forEach(gk => {
                 if (yearData[gk] !== undefined) sumAllGrades += yearData[gk];
             });
-            if (sumAllGrades > calculatedReg) calculatedReg = sumAllGrades;
 
-            // 2. حساب الحاضرين (يشمل كل من لهم تقديرات من (ض جـ إلى م) بالإضافة إلى (رت - راسب تحريري))
-            let calculatedAtt = yearData['ATTENDANTS_COUNT'] || 0;
+            // 2. حساب الحاضرين بجمع من لهم تقديرات من (ض جـ إلى م) بالإضافة إلى (رت - راسب تحريري)
             let sumAttGrades = 0;
             const attGradeKeys = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م", "رت"];
             attGradeKeys.forEach(gk => {
                 if (yearData[gk] !== undefined) sumAttGrades += yearData[gk];
             });
-            if (sumAttGrades > calculatedAtt) calculatedAtt = sumAttGrades;
 
-            return { registered: calculatedReg, attendants: calculatedAtt };
+            return { registered: sumAllGrades, attendants: sumAttGrades };
         }
 
         function renderMatrixTable(deptData, subjects, metric) {
