@@ -821,16 +821,15 @@
                 if (yearData[gk] !== undefined) sumAllGrades += yearData[gk];
             });
 
-            // 2. حساب الحاضرين بجمع من لهم تقديرات من (ض جـ إلى م) بالإضافة إلى (رت - راسب تحريري)
+            // 2. حساب الحاضرين بجمع من لهم تقدير فعلي فقط (من ض جـ إلى م) واستبعاد الراسب تحريري (رت) وغيرها
             let sumAttGrades = 0;
-            const attGradeKeys = ["ض جـ", "ض", "ل", "جـ", "جـ جـ", "م", "رت"];
-            attGradeKeys.forEach(gk => {
+            ATTENDANT_KEYS.forEach(gk => {
                 if (yearData[gk] !== undefined) sumAttGrades += yearData[gk];
             });
 
             return { registered: sumAllGrades, attendants: sumAttGrades };
         }
-
+        
         function renderMatrixTable(deptData, subjects, metric) {
             const thead = document.getElementById('tableHead');
             const tbody = document.getElementById('tableBody');
