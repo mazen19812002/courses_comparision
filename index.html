@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -812,24 +811,28 @@
         }
 
        // حساب إجمالي المقيدين والحاضرين الحقيقي لكل مقرر وسنة بالاعتماد كلياً على جمع التقديرات
+        // ملاحظة هامة: هاتان الخانتان (مقيد / حاضر) تُحسبان دائماً من مجموع أعمدة التقديرات نفسها،
+        // بغض النظر تماماً عن قيم عمودي "المقيد" و"الحاضر" الأصليين في ملف الإكسل (D/E) - لا تُستخدم هنا إطلاقاً.
         function getCalculatedCounts(yearData) {
             if (!yearData) return { registered: 0, attendants: 0 };
-            
+
             // 1. حساب أعداد المقيدين بجمع كافة التقديرات والحالات (شامل كل الأعداد بالحرمان والغياب والغياب بعذر والراسبين تحريري)
             let sumAllGrades = 0;
             GRADE_KEYS.forEach(gk => {
-                if (yearData[gk] !== undefined) sumAllGrades += yearData[gk];
+                const v = yearData[gk];
+                if (typeof v === 'number' && !isNaN(v)) sumAllGrades += v;
             });
 
             // 2. حساب الحاضرين بجمع من لهم تقدير فعلي فقط (من ض جـ إلى م) واستبعاد الراسب تحريري (رت) وغيرها
             let sumAttGrades = 0;
             ATTENDANT_KEYS.forEach(gk => {
-                if (yearData[gk] !== undefined) sumAttGrades += yearData[gk];
+                const v = yearData[gk];
+                if (typeof v === 'number' && !isNaN(v)) sumAttGrades += v;
             });
 
             return { registered: sumAllGrades, attendants: sumAttGrades };
         }
-        
+
         function renderMatrixTable(deptData, subjects, metric) {
             const thead = document.getElementById('tableHead');
             const tbody = document.getElementById('tableBody');
